@@ -1306,6 +1306,11 @@
   box-shadow: 0 0 0 2px var(--accent-blue-soft);
 }
 
+.auth-dev-input-wrap--error {
+  border-color: var(--accent-red);
+  box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.14);
+}
+
 .auth-dev-input-wrap svg {
   color: var(--text-muted);
   flex-shrink: 0;

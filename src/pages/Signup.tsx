@@ -1,16 +1,41 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  ArrowUpRight,
+  Clock3,
+  Eye,
+  EyeOff,
+  Github,
+  GitBranch,
+  Gitlab,
+  Lock,
+  Mail,
+  Network,
+  Search,
+  ShieldCheck,
+  User,
+} from 'lucide-react'
+import { API_BASE_URL } from '../services/api'
+import { clearError, signup } from '../store/slices/authSlice'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { signup, clearError } from '../store/slices/authSlice'
-import { motion } from 'framer-motion'
-import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Sparkles, Shield, Zap, CheckCircle } from 'lucide-react'
 
-const Signup = () => {
+const capabilityRows = [
+  { icon: <Network size={16} />, label: 'Architecture', value: 'Interactive maps for controllers, services, dependencies, and infra edges.' },
+  { icon: <GitBranch size={16} />, label: 'Execution Flow', value: 'Endpoint-to-runtime traces derived from generated impact and call graph artifacts.' },
+  { icon: <Search size={16} />, label: 'Code Search', value: 'Search services, functions, endpoints, ADRs, and generated intelligence from one surface.' },
+  { icon: <ShieldCheck size={16} />, label: 'Impact Review', value: 'Risk, affected modules, changed files, and doc drift aligned in one review loop.' },
+]
+
+const getSafeReturnTo = (searchParams: URLSearchParams) => {
+  const rawReturnTo = searchParams.get('returnTo') || searchParams.get('redirect') || '/dashboard'
+  return rawReturnTo.startsWith('/') ? rawReturnTo : '/dashboard'
+}
+
+export default function Signup() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
 
   const [formData, setFormData] = useState({
     username: '',
@@ -18,6 +43,8 @@ const Signup = () => {
     password: '',
     confirmPassword: '',
   })
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [formErrors, setFormErrors] = useState<{
     username?: string
     email?: string
@@ -31,42 +58,43 @@ const Signup = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard')
+      navigate(getSafeReturnTo(searchParams), { replace: true })
     }
-  }, [isAuthenticated, navigate])
+  }, [isAuthenticated, navigate, searchParams])
 
   const validateForm = () => {
-    const errors: typeof formErrors = {}
+    const nextErrors: typeof formErrors = {}
 
     if (!formData.username.trim()) {
-      errors.username = 'Full name is required'
+      nextErrors.username = 'Full name is required'
     }
 
     if (!formData.email) {
-      errors.email = 'Email is required'
+      nextErrors.email = 'Email is required'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Invalid email format'
+      nextErrors.email = 'Invalid email format'
     }
 
     if (!formData.password) {
-      errors.password = 'Password is required'
+      nextErrors.password = 'Password is required'
     } else if (formData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters'
+      nextErrors.password = 'Password must be at least 6 characters'
     }
 
     if (!formData.confirmPassword) {
-      errors.confirmPassword = 'Please confirm your password'
+      nextErrors.confirmPassword = 'Please confirm your password'
     } else if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match'
+      nextErrors.confirmPassword = 'Passwords do not match'
     }
 
-    setFormErrors(errors)
-    return Object.keys(errors).length === 0
+    setFormErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+
     if (formErrors[name as keyof typeof formErrors]) {
       setFormErrors((prev) => ({ ...prev, [name]: undefined }))
     }
@@ -75,39 +103,34 @@ const Signup = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!validateForm()) return
+    if (!validateForm()) {
+      return
+    }
 
     await dispatch(
       signup({
+        username: formData.username,
         email: formData.email,
         password: formData.password,
-        username: formData.username,
       })
     )
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.07, delayChildren: 0.1 },
-    },
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 16 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] } },
+  const handleGitHubSignup = () => {
+    const returnTo = getSafeReturnTo(searchParams)
+    window.location.href = `${API_BASE_URL}/auth/github?returnTo=${encodeURIComponent(returnTo)}`
   }
 
   const passwordStrength = () => {
-    const p = formData.password
-    if (!p) return { level: 0, label: '', color: '' }
+    const password = formData.password
+    if (!password) return { level: 0, label: '', color: '' }
+
     let score = 0
-    if (p.length >= 6) score++
-    if (p.length >= 10) score++
-    if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score++
-    if (/[0-9]/.test(p)) score++
-    if (/[^A-Za-z0-9]/.test(p)) score++
+    if (password.length >= 6) score++
+    if (password.length >= 10) score++
+    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++
+    if (/[0-9]/.test(password)) score++
+    if (/[^A-Za-z0-9]/.test(password)) score++
 
     if (score <= 1) return { level: 1, label: 'Weak', color: 'var(--accent-red)' }
     if (score <= 2) return { level: 2, label: 'Fair', color: 'var(--accent-orange)' }
@@ -117,138 +140,141 @@ const Signup = () => {
   }
 
   const strength = passwordStrength()
-
-  const features = [
-    { icon: <Sparkles size={20} />, title: 'AI-Powered Docs', desc: 'Auto-generated documentation from your codebase' },
-    { icon: <Shield size={20} />, title: 'Drift Detection', desc: 'Real-time code-to-doc synchronization alerts' },
-    { icon: <Zap size={20} />, title: 'CI/CD Integration', desc: 'Seamless pipeline hooks for every commit' },
-  ]
+  const returnTo = getSafeReturnTo(searchParams)
+  const loginHref = returnTo === '/dashboard'
+    ? '/login'
+    : `/login?returnTo=${encodeURIComponent(returnTo)}`
 
   return (
-    <div className="auth-page">
-      {/* Left Branding Panel */}
-      <div className="auth-branding">
-        <div className="auth-branding-bg">
-          <div className="auth-orb auth-orb-1" />
-          <div className="auth-orb auth-orb-2" />
-          <div className="auth-orb auth-orb-3" />
-          <div className="auth-grid-overlay" />
+    <div className="auth-dev-shell">
+      <div className="auth-dev-grid" />
+
+      <section className="auth-dev-panel auth-dev-panel--left">
+        <div className="auth-dev-header-row">
+          <div className="auth-dev-eyebrow">DocPulse</div>
+          <div className="auth-dev-status">Workspace bootstrap</div>
         </div>
 
-        <motion.div
-          className="auth-branding-content"
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
-        >
-          <div className="auth-brand-logo">
-            <span>DocPulse</span>
-          </div>
-
-          <h2 className="auth-brand-headline">
-            Start building<br />
-            <span className="auth-brand-gradient-text">smarter documentation</span>
-          </h2>
-
-          <p className="auth-brand-subtitle">
-            Join thousands of teams who trust DocPulse to keep their documentation always in sync with code.
+        <div className="auth-dev-brand">
+          <h1>Start from the same engineering surface you use to review code.</h1>
+          <p>
+            Create your workspace and move directly into architecture graphs,
+            execution flows, API intelligence, impact review, and decision records.
           </p>
+        </div>
 
-          <div className="auth-features-list">
-            {features.map((f, i) => (
-              <motion.div
-                key={i}
-                className="auth-feature-item"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 + i * 0.12, duration: 0.5 }}
-              >
-                <div className="auth-feature-icon">{f.icon}</div>
-                <div>
-                  <div className="auth-feature-title">{f.title}</div>
-                  <div className="auth-feature-desc">{f.desc}</div>
-                </div>
-              </motion.div>
-            ))}
+        <div className="auth-dev-console">
+          <div className="auth-dev-console-head">
+            <span>workspace/session</span>
+            <span>provider bootstrap</span>
           </div>
-        </motion.div>
-      </div>
+          <div className="auth-dev-console-body">
+            <div className="auth-dev-console-line"><span>$</span> portal workspace create --provider github</div>
+            <div className="auth-dev-console-line"><span>{'>'}</span> creating project access, doc generation, and intelligence scopes</div>
+            <div className="auth-dev-console-line"><span>{'>'}</span> preparing repository onboarding and review surfaces</div>
+            <div className="auth-dev-console-line"><span>$</span> portal open --surface dashboard</div>
+          </div>
+        </div>
 
-      {/* Right Form Panel */}
-      <div className="auth-form-panel">
-        <motion.div
-          className="auth-form-card"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.div variants={itemVariants} className="auth-form-header">
-            <h1>Create your account</h1>
-            <p>Get started free — no credit card required</p>
-          </motion.div>
+        <div className="auth-dev-capabilities">
+          {capabilityRows.map((row) => (
+            <div key={row.label} className="auth-dev-capability">
+              <div className="auth-dev-capability-icon">{row.icon}</div>
+              <div>
+                <div className="auth-dev-capability-label">{row.label}</div>
+                <div className="auth-dev-capability-value">{row.value}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="auth-dev-panel auth-dev-panel--right">
+        <div className="auth-dev-card">
+          <div className="auth-dev-card-head">
+            <div className="auth-dev-badge">Create Account</div>
+            <h2>Use the same sign-in surface, but create a new workspace</h2>
+            <p>GitHub onboarding is available now. You can also create an account with your email and password.</p>
+          </div>
 
           {error && (
-            <motion.div variants={itemVariants} className="auth-alert auth-alert-error">
+            <div className="auth-dev-alert">
               {error}
-            </motion.div>
+            </div>
           )}
 
-          <form onSubmit={handleSubmit}>
-            <motion.div variants={itemVariants} className="auth-field">
+          <button
+            type="button"
+            className="auth-dev-github-btn"
+            onClick={handleGitHubSignup}
+            disabled={isLoading}
+          >
+            <Github size={18} />
+            {isLoading ? 'Connecting...' : 'Continue with GitHub'}
+          </button>
+
+          <div className="auth-dev-divider">
+            <span>or use developer credentials</span>
+          </div>
+
+          <form className="auth-dev-email-form" onSubmit={handleSubmit}>
+            <div className="auth-dev-field">
               <label htmlFor="username">Full name</label>
-              <div className={`auth-input-wrap ${formErrors.username ? 'auth-input-error' : ''}`}>
-                <User size={16} className="auth-input-icon" />
+              <div className={`auth-dev-input-wrap ${formErrors.username ? 'auth-dev-input-wrap--error' : ''}`}>
+                <User size={16} />
                 <input
-                  type="text"
                   id="username"
                   name="username"
+                  type="text"
+                  placeholder="Jane Smith"
                   value={formData.username}
                   onChange={handleChange}
-                  placeholder="Jane Smith"
-                  disabled={isLoading}
                   autoComplete="name"
+                  required
+                  disabled={isLoading}
                 />
               </div>
               {formErrors.username && <p className="auth-error-msg">{formErrors.username}</p>}
-            </motion.div>
+            </div>
 
-            <motion.div variants={itemVariants} className="auth-field">
-              <label htmlFor="email">Email address</label>
-              <div className={`auth-input-wrap ${formErrors.email ? 'auth-input-error' : ''}`}>
-                <Mail size={16} className="auth-input-icon" />
+            <div className="auth-dev-field">
+              <label htmlFor="email">Email</label>
+              <div className={`auth-dev-input-wrap ${formErrors.email ? 'auth-dev-input-wrap--error' : ''}`}>
+                <Mail size={16} />
                 <input
-                  type="email"
                   id="email"
                   name="email"
+                  type="email"
+                  placeholder="name@example.com"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="you@company.com"
-                  disabled={isLoading}
                   autoComplete="email"
+                  required
+                  disabled={isLoading}
                 />
               </div>
               {formErrors.email && <p className="auth-error-msg">{formErrors.email}</p>}
-            </motion.div>
+            </div>
 
-            <motion.div variants={itemVariants} className="auth-field">
+            <div className="auth-dev-field">
               <label htmlFor="password">Password</label>
-              <div className={`auth-input-wrap ${formErrors.password ? 'auth-input-error' : ''}`}>
-                <Lock size={16} className="auth-input-icon" />
+              <div className={`auth-dev-input-wrap ${formErrors.password ? 'auth-dev-input-wrap--error' : ''}`}>
+                <Lock size={16} />
                 <input
-                  type={showPassword ? 'text' : 'password'}
                   id="password"
                   name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="At least 6 characters"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="At least 6 characters"
-                  disabled={isLoading}
                   autoComplete="new-password"
+                  required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
-                  className="auth-eye-btn"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
+                  className="auth-dev-eye-btn"
+                  onClick={() => setShowPassword((prev) => !prev)}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -257,12 +283,12 @@ const Signup = () => {
               {formData.password && (
                 <div className="auth-strength">
                   <div className="auth-strength-track">
-                    {[1, 2, 3, 4, 5].map((i) => (
+                    {[1, 2, 3, 4, 5].map((level) => (
                       <div
-                        key={i}
+                        key={level}
                         className="auth-strength-segment"
                         style={{
-                          backgroundColor: i <= strength.level ? strength.color : 'var(--border-default)',
+                          backgroundColor: level <= strength.level ? strength.color : 'var(--border-default)',
                         }}
                       />
                     ))}
@@ -272,70 +298,97 @@ const Signup = () => {
                   </span>
                 </div>
               )}
-            </motion.div>
+            </div>
 
-            <motion.div variants={itemVariants} className="auth-field">
+            <div className="auth-dev-field">
               <label htmlFor="confirmPassword">Confirm password</label>
-              <div className={`auth-input-wrap ${formErrors.confirmPassword ? 'auth-input-error' : ''}`}>
-                {formData.confirmPassword && formData.password === formData.confirmPassword ? (
-                  <CheckCircle size={16} className="auth-input-icon" style={{ color: 'var(--accent-green)' }} />
-                ) : (
-                  <Lock size={16} className="auth-input-icon" />
-                )}
+              <div className={`auth-dev-input-wrap ${formErrors.confirmPassword ? 'auth-dev-input-wrap--error' : ''}`}>
+                <Lock size={16} />
                 <input
-                  type={showConfirm ? 'text' : 'password'}
                   id="confirmPassword"
                   name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  placeholder="Confirm your password"
-                  disabled={isLoading}
                   autoComplete="new-password"
+                  required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
-                  className="auth-eye-btn"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  tabIndex={-1}
+                  className="auth-dev-eye-btn"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
                 >
-                  {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              {formErrors.confirmPassword && (
-                <p className="auth-error-msg">{formErrors.confirmPassword}</p>
-              )}
-            </motion.div>
+              {formErrors.confirmPassword && <p className="auth-error-msg">{formErrors.confirmPassword}</p>}
+            </div>
 
-            <motion.button
-              variants={itemVariants}
+            <button
               type="submit"
-              className="auth-submit-btn"
+              className="auth-dev-submit-btn"
               disabled={isLoading}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
             >
-              {isLoading ? (
-                <span className="auth-btn-loading">
-                  <span className="auth-spinner" />
-                  Creating account…
-                </span>
-              ) : (
-                <>
-                  Create Account
-                  <ArrowRight size={16} />
-                </>
-              )}
-            </motion.button>
+              {isLoading ? 'Creating account...' : 'Create Account'}
+            </button>
           </form>
 
-          <motion.p variants={itemVariants} className="auth-footer-link">
-            Already have an account?{' '}
-            <Link to="/login">Sign in</Link>
-          </motion.p>
-        </motion.div>
-      </div>
+          <div className="auth-dev-footer">
+            Already have an account? <Link to={loginHref}>Sign in</Link>
+          </div>
+
+          <div className="auth-dev-provider-list">
+            <div className="auth-dev-provider auth-dev-provider--active">
+              <div className="auth-dev-provider-main">
+                <Github size={18} />
+                <div>
+                  <div className="auth-dev-provider-name">GitHub</div>
+                  <div className="auth-dev-provider-copy">Available now for repository onboarding and workspace auth.</div>
+                </div>
+              </div>
+              <span className="auth-dev-provider-pill">Live</span>
+            </div>
+
+            <div className="auth-dev-provider">
+              <div className="auth-dev-provider-main">
+                <Clock3 size={18} />
+                <div>
+                  <div className="auth-dev-provider-name">Bitbucket</div>
+                  <div className="auth-dev-provider-copy">Provider integration coming soon.</div>
+                </div>
+              </div>
+              <span className="auth-dev-provider-pill auth-dev-provider-pill--muted">Soon</span>
+            </div>
+
+            <div className="auth-dev-provider">
+              <div className="auth-dev-provider-main">
+                <Gitlab size={18} />
+                <div>
+                  <div className="auth-dev-provider-name">GitLab</div>
+                  <div className="auth-dev-provider-copy">Provider integration coming soon.</div>
+                </div>
+              </div>
+              <span className="auth-dev-provider-pill auth-dev-provider-pill--muted">Soon</span>
+            </div>
+          </div>
+
+          <a
+            className="auth-dev-secondary-link"
+            href="https://github.com"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Review GitHub account access
+            <ArrowUpRight size={14} />
+          </a>
+
+          <div className="auth-dev-note">
+            Account creation now uses the same shell and interaction model as login. This replaces the older standalone signup screen.
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
-
-export default Signup

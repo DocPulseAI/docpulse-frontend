@@ -69,7 +69,7 @@ export default function Navbar() {
                         <>
                             <Link to="/login" className="lp-nav-link">Log In</Link>
                             <Link to="/signup" className="lp-btn-primary" style={{ padding: '7px 16px', fontSize: 13 }}>
-                                Get Started
+                                Sign Up
                             </Link>
                         </>
                     )}
@@ -112,7 +112,7 @@ export default function Navbar() {
                             ) : (
                                 <>
                                     <Link to="/login" className="lp-nav-link" style={{ textAlign: 'center' }}>Log In</Link>
-                                    <Link to="/signup" className="lp-btn-primary" style={{ justifyContent: 'center' }}>Get Started</Link>
+                                    <Link to="/signup" className="lp-btn-primary" style={{ justifyContent: 'center' }}>Sign Up</Link>
                                 </>
                             )}
                         </div>
