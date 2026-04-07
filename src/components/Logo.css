@@ -1,0 +1,151 @@
+/* ═══════════════════════════════════════════════════════════
+   DocPulse AI — Premium Animated Logo
+   ═══════════════════════════════════════════════════════════ */
+
+.dp-logo {
+  display: block;
+  overflow: visible;
+}
+
+/* ── Ambient background pulse ── */
+.dp-logo--animated .dp-ambient {
+  animation: dpAmbient 4s ease-in-out infinite alternate;
+  transform-origin: 50px 50px;
+}
+
+@keyframes dpAmbient {
+  0%   { opacity: 0.04; transform: scale(0.9); }
+  100% { opacity: 0.1;  transform: scale(1.1); }
+}
+
+/* ── Main path shimmer ── */
+.dp-logo--animated .dp-path {
+  animation: dpPathGlow 3s ease-in-out infinite alternate;
+}
+
+.dp-logo--animated .dp-path--v   { animation-delay: 0s; }
+.dp-logo--animated .dp-path--d1  { animation-delay: 0.2s; }
+.dp-logo--animated .dp-path--d2  { animation-delay: 0.4s; }
+.dp-logo--animated .dp-path--h1  { animation-delay: 0.1s; }
+.dp-logo--animated .dp-path--h2  { animation-delay: 0.3s; }
+.dp-logo--animated .dp-path--h3  { animation-delay: 0.5s; }
+
+@keyframes dpPathGlow {
+  0%   { opacity: 0.65; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.75; }
+}
+
+/* ── Energy dash flow ── */
+.dp-logo--animated .dp-dash {
+  animation: dpDashFlow 2s linear infinite;
+}
+
+.dp-logo--animated .dp-dash--v   { animation-duration: 1.8s; animation-delay: 0s; }
+.dp-logo--animated .dp-dash--h1  { animation-duration: 2.2s; animation-delay: 0.2s; }
+.dp-logo--animated .dp-dash--h2  { animation-duration: 2s;   animation-delay: 0.1s; }
+.dp-logo--animated .dp-dash--h3  { animation-duration: 2.5s; animation-delay: 0.4s; }
+
+@keyframes dpDashFlow {
+  0%   { stroke-dashoffset: 100; }
+  100% { stroke-dashoffset: 0; }
+}
+
+/* ── Node halo breathing ── */
+.dp-logo--animated .dp-halo {
+  animation: dpHalo 3s ease-in-out infinite alternate;
+}
+
+.dp-logo--animated .dp-halo--core {
+  animation: dpCoreHalo 2s ease-in-out infinite alternate;
+}
+
+@keyframes dpHalo {
+  0%   { opacity: 0.1; }
+  100% { opacity: 0.3; }
+}
+
+@keyframes dpCoreHalo {
+  0%   { opacity: 0.12; r: 12; }
+  100% { opacity: 0.35; r: 16; }
+}
+
+/* ── Core node heartbeat ── */
+.dp-logo--animated .dp-node--core {
+  animation: dpCorebeat 1.5s ease-in-out infinite alternate;
+  transform-origin: 50px 50px;
+}
+
+@keyframes dpCorebeat {
+  0%   { transform: scale(1); }
+  100% { transform: scale(1.12); }
+}
+
+/* ── Right node glow pulse ── */
+.dp-logo--animated .dp-node--right {
+  animation: dpRightGlow 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes dpRightGlow {
+  0%   { filter: brightness(0.95); }
+  100% { filter: brightness(1.25); }
+}
+
+/* ── Left node stroke pulse ── */
+.dp-logo--animated .dp-node--left {
+  animation: dpLeftPulse 3s ease-in-out infinite alternate;
+}
+
+@keyframes dpLeftPulse {
+  0%   { stroke-width: 2.5; stroke-opacity: 0.75; }
+  100% { stroke-width: 3;   stroke-opacity: 1; }
+}
+
+/* ── Trace shimmer ── */
+.dp-logo--animated .dp-trace {
+  animation: dpTrace 4s ease-in-out infinite;
+}
+
+.dp-logo--animated .dp-trace--1 { animation-delay: 0s; }
+.dp-logo--animated .dp-trace--2 { animation-delay: 2s; }
+
+@keyframes dpTrace {
+  0%, 100% { opacity: 0.2; }
+  50%      { opacity: 0.7; }
+}
+
+/* ── Particle glow pulse ── */
+.dp-logo--animated .dp-particle {
+  animation: dpParticle 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes dpParticle {
+  0%   { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* ── Static mode: hide animated layers ── */
+.dp-logo:not(.dp-logo--animated) .dp-energy-layer,
+.dp-logo:not(.dp-logo--animated) .dp-particles {
+  display: none;
+}
+
+.dp-logo:not(.dp-logo--animated) .dp-halo {
+  opacity: 0.15;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .dp-logo--animated .dp-energy-layer,
+  .dp-logo--animated .dp-particles {
+    display: none;
+  }
+
+  .dp-logo--animated .dp-path,
+  .dp-logo--animated .dp-node,
+  .dp-logo--animated .dp-halo,
+  .dp-logo--animated .dp-trace,
+  .dp-logo--animated .dp-ambient {
+    animation: none !important;
+  }
+}

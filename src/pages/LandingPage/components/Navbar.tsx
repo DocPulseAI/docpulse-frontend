@@ -4,6 +4,8 @@ import { Menu, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import ThemeToggle from '../../../components/ThemeToggle'
 import { useAppSelector } from '../../../store/hooks'
+import Logo from '../../../components/Logo'
+
 
 const navLinks = [
     { label: 'Pipeline', href: '#pipeline' },
@@ -41,10 +43,12 @@ export default function Navbar() {
             <div className="lp-nav-inner">
                 {/* Logo */}
                 <a href="#hero" className="lp-nav-brand">
+                    <Logo size={36} />
                     <span className="lp-nav-brand-name">
                         DocPulse<span style={{ color: 'var(--accent-blue)' }}> AI</span>
                     </span>
                 </a>
+
 
                 {/* Desktop links */}
                 <div className="lp-nav-links">

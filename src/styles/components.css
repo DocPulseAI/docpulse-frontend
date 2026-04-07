@@ -66,8 +66,15 @@
 .cr-topbar-brand {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     text-decoration: none;
+    color: var(--text-primary);
+}
+
+.cr-brand-logo {
+    display: block;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px var(--accent-blue-soft));
 }
 
 .cr-brand-mark {

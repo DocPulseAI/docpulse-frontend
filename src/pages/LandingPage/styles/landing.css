@@ -1,4 +1,4 @@
-﻿/* ===================================================================
+/* ===================================================================
    LANDING PAGE — Theme-Aware Design System
    Uses CSS variables from theme.css for full dark/light support.
    No hardcoded colors — everything adapts to [data-theme].
@@ -101,10 +101,21 @@ html {
 .lp-nav-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   text-decoration: none;
   color: var(--text-primary);
 }
+
+.lp-nav-logo {
+  display: block;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+.lp-nav-brand:hover .lp-nav-logo {
+  transform: scale(1.05);
+}
+
 
 .lp-nav-brand-name {
   font-family: var(--font-display, var(--font-sans));

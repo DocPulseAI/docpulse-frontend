@@ -7,6 +7,8 @@ import { API_BASE_URL } from '../services/api'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import Logo from '../components/Logo'
+
 
 const capabilityRows = [
   { icon: <Network size={16} />, label: 'Architecture', value: 'Interactive maps for controllers, services, dependencies, and infra edges.' },
@@ -71,9 +73,13 @@ export default function Login() {
 
       <section className="auth-dev-panel auth-dev-panel--left">
         <div className="auth-dev-header-row">
-          <div className="auth-dev-eyebrow">DocPulse</div>
+          <div className="auth-dev-brand-logo-wrap">
+            <Logo size={56} />
+            <div className="auth-dev-eyebrow">DocPulse</div>
+          </div>
           <div className="auth-dev-status">Handshake active</div>
         </div>
+
 
         <div className="auth-dev-brand">
           <h1>Built for engineers reviewing living systems, not raw folders.</h1>

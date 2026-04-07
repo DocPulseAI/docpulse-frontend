@@ -9,7 +9,9 @@ import {
 import { useAppSelector, useAppDispatch } from '../store/hooks'
 import { logout } from '../store/slices/authSlice'
 import ThemeToggle from './ThemeToggle'
+import Logo from './Logo'
 import { dashboardApi, DashboardOverviewResponse, documentsApi } from '../services/api'
+
 
 interface SidebarItem {
     to: string
@@ -122,8 +124,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         <PanelLeft size={16} />
                     </button>
                     <Link to="/dashboard" className="cr-topbar-brand">
+                        <Logo size={28} />
                         <span className="cr-brand-text">DocPulse</span>
                     </Link>
+
                     <span className="cr-topbar-sep" />
                     <span className="cr-topbar-project">{user?.username ?? 'Workspace'}</span>
                 </div>
