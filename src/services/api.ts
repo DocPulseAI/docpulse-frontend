@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { type InternalAxiosRequestConfig } from 'axios'
 
 // Build the API URL from environment variables
 // VITE_API_URL takes priority, otherwise construct from VITE_API_BASE + VITE_API_HOSTPORT
@@ -17,9 +17,72 @@ const getApiBaseUrl = () => {
 export const API_BASE_URL = getApiBaseUrl()
 export const EPIC5_API_BASE_URL = (import.meta.env.VITE_EPIC5_API || '/api').replace(/\/+$/, '')
 
-if (import.meta.env.PROD) {
-  console.log('[DEBUG] API Base URL:', API_BASE_URL || '(Relative to same origin)')
+interface RequestTelemetry {
+  requestId: string
+  startedAt: number
 }
+
+type InstrumentedRequestConfig = InternalAxiosRequestConfig & {
+  metadata?: RequestTelemetry
+}
+
+const DIAGNOSTICS_LOGS_ENABLED =
+  import.meta.env.DEV || String(import.meta.env.VITE_ENABLE_DIAGNOSTICS_LOGS || 'false').toLowerCase() === 'true'
+const API_LOG_BODY_MAX_CHARS = Math.max(200, Number(import.meta.env.VITE_API_LOG_BODY_MAX_CHARS || 1200))
+
+const truncateText = (value: string | undefined | null): string => {
+  const text = (value || '').trim()
+  if (text.length <= API_LOG_BODY_MAX_CHARS) {
+    return text
+  }
+  return `${text.slice(0, API_LOG_BODY_MAX_CHARS)}...(truncated)`
+}
+
+const safePreview = (value: unknown): string | undefined => {
+  if (value === null || value === undefined) {
+    return undefined
+  }
+  if (typeof value === 'string') {
+    return truncateText(value)
+  }
+  try {
+    return truncateText(JSON.stringify(value))
+  } catch {
+    return truncateText(String(value))
+  }
+}
+
+const createRequestId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+const logApiEvent = (
+  level: 'info' | 'warn' | 'error',
+  eventId: string,
+  message: string,
+  fields: Record<string, unknown> = {}
+): void => {
+  if (!DIAGNOSTICS_LOGS_ENABLED) {
+    return
+  }
+  const payload = {
+    ts: new Date().toISOString(),
+    level: level.toUpperCase(),
+    service: 'frontend',
+    eventId,
+    message,
+    ...fields,
+  }
+  console[level](JSON.stringify(payload))
+}
+
+logApiEvent('info', 'FRONTEND_API_CLIENT_INIT', 'Initialized frontend API client', {
+  apiBaseUrl: API_BASE_URL || '(relative)',
+  epic5BaseUrl: EPIC5_API_BASE_URL,
+})
 
 const intelligencePath = (path: string) => `${EPIC5_API_BASE_URL}/intelligence${path}`
 
@@ -34,21 +97,71 @@ const api = axios.create({
 // Request interceptor - attach access token
 api.interceptors.request.use(
   (config) => {
+    const instrumentedConfig = config as InstrumentedRequestConfig
+    const requestId = createRequestId()
+    instrumentedConfig.metadata = { requestId, startedAt: Date.now() }
+
+    const headersWithSet = instrumentedConfig.headers as { set?: (key: string, value: string) => void }
+    if (headersWithSet && typeof headersWithSet.set === 'function') {
+      headersWithSet.set('X-Request-Id', requestId)
+    } else if (instrumentedConfig.headers) {
+      ;(instrumentedConfig.headers as unknown as Record<string, string>)['X-Request-Id'] = requestId
+    }
+
     const token = localStorage.getItem('access_token')
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      instrumentedConfig.headers.Authorization = `Bearer ${token}`
     }
-    return config
+    logApiEvent('info', 'FRONTEND_API_REQUEST_START', 'Outgoing API request started', {
+      requestId,
+      method: (instrumentedConfig.method || 'GET').toString().toUpperCase(),
+      url: instrumentedConfig.url,
+      baseURL: instrumentedConfig.baseURL,
+    })
+    return instrumentedConfig
   },
   (error) => {
+    logApiEvent('error', 'FRONTEND_API_REQUEST_PREP_FAILED', 'Failed to prepare API request', {
+      error: safePreview(error?.message),
+    })
     return Promise.reject(error)
   }
 )
 
 // Response interceptor - handle 401 errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const instrumentedConfig = response.config as InstrumentedRequestConfig
+    const requestId = instrumentedConfig.metadata?.requestId
+    const durationMs = instrumentedConfig.metadata ? Date.now() - instrumentedConfig.metadata.startedAt : undefined
+    logApiEvent('info', 'FRONTEND_API_REQUEST_SUCCESS', 'API request completed', {
+      requestId,
+      method: (instrumentedConfig.method || 'GET').toString().toUpperCase(),
+      url: instrumentedConfig.url,
+      statusCode: response.status,
+      durationMs,
+    })
+    return response
+  },
   (error) => {
+    const instrumentedConfig = (error?.config || {}) as InstrumentedRequestConfig
+    const requestId = instrumentedConfig.metadata?.requestId
+    const durationMs = instrumentedConfig.metadata ? Date.now() - instrumentedConfig.metadata.startedAt : undefined
+    const statusCode = error?.response?.status
+    logApiEvent(
+      statusCode === 401 ? 'warn' : 'error',
+      'FRONTEND_API_REQUEST_FAILED',
+      'API request failed',
+      {
+        requestId,
+        method: (instrumentedConfig.method || 'GET').toString().toUpperCase(),
+        url: instrumentedConfig.url,
+        statusCode,
+        durationMs,
+        error: safePreview(error?.message),
+        responsePreview: safePreview(error?.response?.data),
+      }
+    )
     if (error.response?.status === 401) {
       // Clear token and redirect to login
       localStorage.removeItem('access_token')
