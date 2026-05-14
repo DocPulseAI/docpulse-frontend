@@ -310,7 +310,7 @@ export interface IntelligenceView {
   publishedAt: string | null
   generatedAt: string | null
   runStatus: 'queued' | 'running' | 'succeeded' | 'failed' | 'partial' | null
-  source: 'published' | 'legacy'
+  source: 'published' | 'run' | 'legacy'
 }
 
 export interface DashboardOverviewResponse {
