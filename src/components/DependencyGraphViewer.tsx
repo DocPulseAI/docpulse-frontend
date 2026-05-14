@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { useOutletContext } from 'react-router-dom'
+
 import { motion } from 'framer-motion'
 import { GitFork, AlertTriangle, Search } from 'lucide-react'
 import dagre from 'dagre'
@@ -7,13 +7,17 @@ import ReactFlow, {
     useNodesState, useEdgesState, MarkerType, Background, Controls,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { portalApi, PortalDeps } from '../../services/portalApi'
+import { portalApi, PortalDeps } from '../services/portalApi'
 
 
 const CYCLE_COLORS = ['#ef4444', '#f97316', '#8b5cf6', '#06b6d4']
 
-const IntelligenceDependencies: React.FC = () => {
-    const { projectId, commitHash } = useOutletContext<{ projectId: string; commitHash: string }>()
+interface Props {
+    projectId: string;
+    commitHash: string;
+}
+
+const DependencyGraphViewer: React.FC<Props> = ({ projectId, commitHash }) => {
     const [data, setData] = useState<PortalDeps | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -120,45 +124,34 @@ const IntelligenceDependencies: React.FC = () => {
     }, [search, data, setNodes, setEdges])
 
     if (loading) return (
-        <div className="intel-page">
-            <div className="intel-loading-skeleton" style={{ height: 80, borderRadius: 14, marginBottom: 16 }} />
-            <div className="intel-loading-skeleton" style={{ height: 500, borderRadius: 14 }} />
+        <div className="cr-card">
+            <div className="cr-loading" style={{ height: 400 }}><div className="cr-spinner" /></div>
         </div>
     )
 
     return (
-        <div className="intel-page">
-            <div className="intel-page-header">
-                <h1 className="intel-page-title">
-                    <span className="intel-page-title-icon" style={{ background: '#f0fdf4', color: '#16a34a' }}>
-                        <GitFork size={18} />
-                    </span>
-                    Dependencies
-                </h1>
-                <p className="intel-page-subtitle">Module coupling analysis and circular dependency detection</p>
-            </div>
-
+        <div className="cr-stack">
             {/* ── Circular Dep Alert ── */}
             {data && data.circularDependencies.length > 0 && (
                 <motion.div
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="intel-cycle-alert"
+                    style={{ background: 'var(--severity-critical-glow)', border: '1px solid var(--severity-critical)', borderRadius: 'var(--radius-lg)', padding: 16 }}
                 >
-                    <div className="intel-cycle-alert-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--severity-critical)', marginBottom: 12 }}>
                         <AlertTriangle size={16} />
-                        <span className="intel-cycle-alert-title">
+                        <span style={{ fontWeight: 600, fontSize: 13 }}>
                             {data.circularDependencies.length} Circular Dependenc{data.circularDependencies.length > 1 ? 'ies' : 'y'} Detected
                         </span>
-                        <span className="intel-cycle-alert-sub">
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                             These create tight coupling that makes code hard to test and refactor
                         </span>
                     </div>
-                    <div className="intel-cycle-list">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {data.circularDependencies.map((cycle, i) => (
-                            <div key={i} className="intel-cycle-item">
-                                <span className="intel-cycle-dot" style={{ background: CYCLE_COLORS[i % CYCLE_COLORS.length] }} />
-                                <code className="intel-cycle-chain">
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: 4, background: CYCLE_COLORS[i % CYCLE_COLORS.length] }} />
+                                <code style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--severity-critical)', background: 'var(--bg-subtle)', padding: '4px 8px', borderRadius: 4 }}>
                                     {[...cycle, cycle[0]].join(' → ')}
                                 </code>
                             </div>
@@ -167,65 +160,45 @@ const IntelligenceDependencies: React.FC = () => {
                 </motion.div>
             )}
 
-            {/* ── Stats chips ── */}
-            {data && (
-                <div className="intel-deps-stats">
-                    <span className="intel-chip">
-                        <GitFork size={11} /> {data.totalModules} Modules
-                    </span>
-                    <span className="intel-chip">
-                        {data.totalDependencies} Dependencies
-                    </span>
-                    {data.circularDependencies.length > 0 && (
-                        <span className="intel-chip intel-chip--red">
-                            ⚠️ {data.circularDependencies.length} Cycle{data.circularDependencies.length > 1 ? 's' : ''}
-                        </span>
-                    )}
-                    {data.truncated && (
-                        <span className="intel-chip intel-chip--yellow">
-                            Showing top {data.modules.length} of {data.totalModules}
-                        </span>
-                    )}
-                </div>
-            )}
-
             {/* ── Graph ── */}
             {error || !data ? (
-                <div className="intel-section-card">
-                    <div className="intel-empty">
-                        <GitFork size={36} className="text-slate-300" />
-                        <p>{error ?? 'No dependency data available for this commit.'}</p>
+                <div className="cr-card">
+                    <div className="cr-doc-empty">
+                        <GitFork size={36} className="text-slate-300" style={{ opacity: 0.5, marginBottom: 12 }} />
+                        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{error ?? 'No dependency data available for this commit.'}</p>
                     </div>
                 </div>
             ) : (
-                <div className="intel-section-card" style={{ marginTop: 16 }}>
-                    <div className="intel-section-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                            <h3 className="intel-section-card-title">Module Dependency Graph</h3>
-                            <p className="intel-section-card-sub">
-                                Red nodes and edges = circular dependencies &nbsp;·&nbsp; Drag to explore
-                            </p>
+                <div className="cr-card" style={{ height: 600, display: 'flex', flexDirection: 'column' }}>
+                    <div className="cr-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border-default)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <h3 className="cr-card-title">Module Dependency Graph</h3>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <span className="cr-severity cr-severity--info" style={{ fontSize: 10 }}>{data.totalModules} Modules</span>
+                                <span className="cr-severity cr-severity--info" style={{ fontSize: 10 }}>{data.totalDependencies} Dependencies</span>
+                                {data.circularDependencies.length > 0 && <span className="cr-severity cr-severity--critical" style={{ fontSize: 10 }}>{data.circularDependencies.length} Cycles</span>}
+                            </div>
                         </div>
-                        <div className="intel-api-search-wrap" style={{ width: 250 }}>
-                            <Search size={14} className="intel-api-search-icon" />
+                        <div style={{ position: 'relative', width: 250 }}>
+                            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             <input 
                                 type="text"
                                 placeholder="Search modules..."
-                                className="intel-api-search"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
+                                style={{ width: '100%', padding: '6px 10px 6px 30px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-subtle)', color: 'var(--text-primary)', fontSize: 12, outline: 'none' }}
                             />
                         </div>
                     </div>
-                    <div style={{ height: 520 }}>
+                    <div style={{ flex: 1, position: 'relative' }}>
                         <ReactFlow
                             nodes={nodes} edges={edges}
                             onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
                             fitView fitViewOptions={{ padding: 0.15 }}
                             minZoom={0.2} maxZoom={2}
                         >
-                            <Background color="#f1f5f9" gap={20} />
-                            <Controls />
+                            <Background color="var(--border-default)" gap={20} />
+                            <Controls style={{ background: 'var(--bg-default)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }} />
                         </ReactFlow>
                     </div>
                 </div>
@@ -234,4 +207,4 @@ const IntelligenceDependencies: React.FC = () => {
     )
 }
 
-export default IntelligenceDependencies
+export default DependencyGraphViewer

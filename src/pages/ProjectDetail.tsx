@@ -6,9 +6,15 @@ import {
   inviteMember, cancelInvitation, removeMember, updateMemberRole,
   clearCurrentProject, clearError,
 } from '../store/slices/projectsSlice'
-import { projectsApi, documentsApi, webhookApi, DocumentVersion, WebhookRun } from '../services/api'
+import { projectsApi, documentsApi, webhookApi, DocumentVersion, WebhookRun, IntelligenceView } from '../services/api'
 import DashboardLayout from '../components/DashboardLayout'
 import DocumentList from '../components/DocumentList'
+import DependencyGraphViewer from '../components/DependencyGraphViewer'
+import ArchitectureGraphViewer from '../components/ArchitectureGraphViewer'
+import CallGraphViewer from '../components/CallGraphViewer'
+import IntelligenceOverviewWidget from '../components/IntelligenceOverviewWidget'
+import IntelligenceApisWidget from '../components/IntelligenceApisWidget'
+import IntelligenceStatusBadge from '../components/IntelligenceStatusBadge'
 import { Github, Users, Users2, Clock, Shield, Trash2, ChevronRight, Eye, EyeOff, Tag, GitBranch, FileText, Edit3, History, Sparkles, CheckCircle2, AlertCircle, X, Loader2 } from 'lucide-react'
 import { useIntelligenceViewResolver } from '../hooks/useIntelligenceViewResolver'
 
@@ -61,8 +67,14 @@ const ProjectDetail = () => {
 
   // Intelligence state
   const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [latestCommitHash, setLatestCommitHash] = useState('')
+  const [publishedIntelligenceView, setPublishedIntelligenceView] = useState<IntelligenceView | null>(null)
   const {
     loading: resolverLoading,
+    error: resolverError,
+    state: resolverState,
+    activeView,
+    commitHash: resolvedCommitHash,
   } = useIntelligenceViewResolver(currentProject?.id)
 
 
@@ -99,7 +111,9 @@ const ProjectDetail = () => {
   }, [currentProject])
   useEffect(() => {
     setAnalysisLoading(resolverLoading)
-  }, [resolverLoading])
+    setPublishedIntelligenceView(activeView)
+    setLatestCommitHash(resolvedCommitHash)
+  }, [resolverLoading, activeView, resolvedCommitHash])
   useEffect(() => { dispatch(clearError()) }, [dispatch])
 
   // Load doc versions when versioning tab is active
@@ -348,8 +362,52 @@ const ProjectDetail = () => {
             </div>
           )}
 
-          {/* ── Intelligence (navigates to dedicated portal) ── */}
-          {activeTab === 'intelligence' && (() => { navigate(`/projects/${id}/intelligence`); return null })()}
+          {/* ── Intelligence ── */}
+          {activeTab === 'intelligence' && (
+            <div className="cr-stack" style={{ gap: 24 }}>
+              {analysisLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+                  <Loader2 className="cr-spinner text-blue-500" size={32} />
+                </div>
+              ) : !latestCommitHash ? (
+                <div className="cr-doc-empty">{resolverError || 'No analyzed commit found for this project yet.'}</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                  <div className="cr-card" style={{ borderLeft: '4px solid var(--accent-primary)' }}>
+                    <div className="cr-card-header" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>System Intelligence Active</h4>
+                        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                          {resolverState.replace('_', ' ')} for {publishedIntelligenceView?.refName || 'this project'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ background: 'var(--bg-subtle)', padding: '4px 8px', borderRadius: 6, fontSize: 13, fontFamily: 'var(--font-mono)' }}>{latestCommitHash.substring(0, 7)}</span>
+                        <IntelligenceStatusBadge state={resolverState as any} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <IntelligenceOverviewWidget projectId={currentProject.id} commitHash={latestCommitHash} />
+                  
+                  <DependencyGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
+                  
+                  <ArchitectureGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
+                  
+                  <CallGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
+                  
+                  <div className="cr-card">
+                      <div className="cr-card-header">
+                          <h3 className="cr-card-title">API Endpoints</h3>
+                      </div>
+                      <div className="cr-card-body">
+                          <IntelligenceApisWidget projectId={currentProject.id} commitHash={latestCommitHash} />
+                      </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Search tab removed - search is inside Intelligence */}
 
