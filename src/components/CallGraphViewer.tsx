@@ -1,18 +1,19 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import ReactFlow, {
     Background,
     Controls,
-    MarkerType,
     useEdgesState,
     useNodesState,
     Node,
     Edge,
     Panel,
+    ReactFlowInstance,
+    ReactFlowProvider
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import dagre from 'dagre'
 import { intelligenceApi } from '../services/api'
-import { Workflow, Search, X } from 'lucide-react'
+import { Workflow, Search, X, Maximize2, Minimize2 } from 'lucide-react'
 
 interface CallGraphViewerProps {
     projectId: string
@@ -20,13 +21,23 @@ interface CallGraphViewerProps {
     onNodeClick?: (label: string) => void
 }
 
-const nodeWidth = 240
-const nodeHeight = 40
+import { nodeTypes, applyEdgeDefaults, EDGE_DEFAULTS } from './edgeConfig'
+
+const nodeWidth = 200
+const nodeHeight = 90
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
     const dagreGraph = new dagre.graphlib.Graph()
     dagreGraph.setDefaultEdgeLabel(() => ({}))
-    dagreGraph.setGraph({ rankdir: direction, nodesep: 30, ranksep: 100 })
+    dagreGraph.setGraph({ 
+        rankdir: direction, 
+        ranker: 'tight-tree',
+        ranksep: direction === 'LR' ? 80 : 60,
+        nodesep: direction === 'LR' ? 20 : 16,
+        edgesep: 10,
+        marginx: 40,
+        marginy: 40
+    })
 
     nodes.forEach((node) => {
         dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight })
@@ -64,6 +75,28 @@ const CallGraphViewer: React.FC<CallGraphViewerProps> = ({ projectId, commitHash
     // Focus and Search state
     const [focusedNode, setFocusedNode] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
+    const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null)
+    const [isFullscreen, setIsFullscreen] = useState(false)
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement)
+            if (rfInstance) {
+                setTimeout(() => rfInstance.fitView({ padding: 0.12, duration: 400 }), 100)
+            }
+        }
+        document.addEventListener('fullscreenchange', handleFullscreenChange)
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    }, [rfInstance])
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            containerRef.current?.requestFullscreen().catch(err => console.error(err))
+        } else {
+            document.exitFullscreen()
+        }
+    }
 
     useEffect(() => {
         const fetchCallGraph = async () => {
@@ -83,38 +116,35 @@ const CallGraphViewer: React.FC<CallGraphViewerProps> = ({ projectId, commitHash
                 const graphNodes = Array.isArray(data?.nodes) ? data.nodes : []
                 const graphEdges = Array.isArray(data?.edges) ? data.edges : []
 
-                const initialNodes: Node[] = graphNodes.map((nodeId: string) => ({
-                    id: nodeId,
-                    data: { label: nodeId, fullPath: nodeId },
-                    position: { x: 0, y: 0 },
-                    style: {
-                        background: 'var(--bg-default)',
-                        color: 'var(--text-primary)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '8px 12px',
-                        width: nodeWidth,
-                        fontSize: 12,
-                        fontFamily: 'var(--font-mono)',
-                        boxShadow: 'var(--shadow-sm)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    },
-                }))
+                const typeMapping: Record<string, string> = {
+                    api: 'API',
+                    controller: 'Controller',
+                    service: 'Service',
+                    entity: 'Entity',
+                    module: 'Module'
+                }
 
-                const initialEdges: Edge[] = graphEdges.map((edge: any, index: number) => ({
+                const initialNodes: Node[] = graphNodes.map((nodeId: string) => {
+                    return {
+                        id: String(nodeId),
+                        type: 'custom',
+                        data: { 
+                            label: String(nodeId), 
+                            fullPath: String(nodeId), 
+                            type: 'Module', // Calls often don't have types from backend
+                            description: String(nodeId)
+                        },
+                        position: { x: 0, y: 0 },
+                    }
+                })
+
+                const rawEdges: Edge[] = graphEdges.map((edge: any, index: number) => ({
                     id: `call-edge-${index}`,
-                    source: edge.from,
-                    target: edge.to,
-                    animated: true,
-                    type: 'smoothstep',
-                    markerEnd: {
-                        type: MarkerType.ArrowClosed,
-                        color: 'var(--accent-primary)',
-                    },
-                    style: { stroke: 'var(--accent-primary)', strokeWidth: 1.5, opacity: 0.6 },
+                    source: String(edge.from),
+                    target: String(edge.to),
+                    label: String(edge.type || 'calls'),
                 }))
+                const initialEdges = applyEdgeDefaults(rawEdges)
 
                 const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
                     initialNodes,
@@ -134,6 +164,14 @@ const CallGraphViewer: React.FC<CallGraphViewerProps> = ({ projectId, commitHash
         fetchCallGraph()
     }, [projectId, commitHash, setEdges, setNodes])
 
+    useEffect(() => {
+        if (allNodes.length === 0 || !rfInstance) return;
+        const id = setTimeout(() => {
+            rfInstance.fitView({ padding: 0.12, duration: 400 });
+        }, 60);
+        return () => clearTimeout(id);
+    }, [allNodes.length, rfInstance]);
+
     // Filter nodes based on focus and search
     useEffect(() => {
         let visibleNodes = [...allNodes]
@@ -148,52 +186,72 @@ const CallGraphViewer: React.FC<CallGraphViewerProps> = ({ projectId, commitHash
             visibleNodes = allNodes.filter(n => connectedNodeIds.has(n.id))
             visibleEdges = connectedEdges
             
-            // Highlight focused node
+            // For custom nodes, highlight via 'selected' or style overrides
             visibleNodes = visibleNodes.map(n => ({
                 ...n,
+                selected: n.id === focusedNode,
                 style: {
-                    ...n.style,
-                    borderWidth: n.id === focusedNode ? '2px' : '1px',
-                    borderColor: n.id === focusedNode ? 'var(--accent-primary)' : 'var(--border-default)',
-                    background: n.id === focusedNode ? 'var(--accent-primary-soft)' : 'var(--bg-default)',
-                    opacity: n.id !== focusedNode ? 0.8 : 1,
+                    opacity: n.id !== focusedNode ? 0.4 : 1,
                 }
             }))
+            
+            if (rfInstance) {
+                setTimeout(() => {
+                    rfInstance.fitView({ nodes: visibleNodes, duration: 800, padding: 0.2 })
+                }, 50)
+            }
         } else if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase()
+            const matchedNodes: Node[] = []
+            
             visibleNodes = allNodes.map(n => {
                 const isMatch = n.data.fullPath.toLowerCase().includes(query)
+                if (isMatch) matchedNodes.push(n)
                 return {
                     ...n,
                     style: {
-                        ...n.style,
-                        borderColor: isMatch ? 'var(--accent-primary)' : 'var(--border-default)',
                         opacity: isMatch ? 1 : 0.3
                     }
                 }
             })
+            
+            if (rfInstance && matchedNodes.length > 0) {
+                setTimeout(() => {
+                    rfInstance.fitView({ nodes: matchedNodes, duration: 800, padding: 0.2, maxZoom: 1.2 })
+                }, 50)
+            }
+        } else {
+            if (rfInstance && visibleNodes.length > 0) {
+                setTimeout(() => {
+                    rfInstance.fitView({ duration: 800, padding: 0.2 })
+                }, 50)
+            }
         }
 
         setNodes(visibleNodes)
         setEdges(visibleEdges)
-    }, [focusedNode, searchQuery, allNodes, allEdges, setNodes, setEdges])
+    }, [focusedNode, searchQuery, allNodes, allEdges, setNodes, setEdges, rfInstance])
 
     if (loading) return <div className="cr-doc-empty">Loading call graph...</div>
     if (analysisUnavailable) return <div className="cr-doc-empty">Analysis not available for this commit.</div>
     if (allNodes.length === 0) return <div className="cr-doc-empty">No call graph data available for this commit.</div>
 
     return (
-        <div style={{ height: 600, width: '100%', position: 'relative', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
-            <ReactFlow
-                nodes={nodes}
-                edges={edges}
+        <div ref={containerRef} style={{ height: isFullscreen ? '100vh' : 600, width: '100%', position: 'relative', borderRadius: isFullscreen ? 0 : 'var(--radius-lg)', overflow: 'hidden', border: isFullscreen ? 'none' : '1px solid var(--border-default)', background: 'var(--bg-default)' }}>
+            <ReactFlowProvider>
+                <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
+                onInit={setRfInstance}
                 onNodeClick={(_, node) => {
                     setFocusedNode(node.id === focusedNode ? null : node.id)
                     onNodeClick?.(node.data.label)
                 }}
                 onPaneClick={() => setFocusedNode(null)}
+                nodeTypes={nodeTypes}
+                defaultEdgeOptions={EDGE_DEFAULTS}
                 fitView
                 fitViewOptions={{ padding: 0.2, minZoom: 0.2, maxZoom: 1.2 }}
                 minZoom={0.1}
@@ -203,13 +261,18 @@ const CallGraphViewer: React.FC<CallGraphViewerProps> = ({ projectId, commitHash
                 <Background color="var(--border-default)" gap={20} size={1} />
                 <Controls showInteractive={false} />
                 
-                <Panel position="top-left" style={{ background: 'var(--bg-default)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: 12, minWidth: 280 }}>
+                <Panel position="top-right" style={{ background: 'var(--bg-default)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: 12, minWidth: 280 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                             <Workflow size={14} /> 
                             {focusedNode ? 'Focus Mode' : 'Execution Traces'}
                         </span>
-                        <span className="cr-severity cr-severity--info" style={{ fontSize: 10 }}>{allNodes.length} nodes</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <span className="cr-severity cr-severity--info" style={{ fontSize: 10 }}>{allNodes.length} nodes</span>
+                            <button onClick={toggleFullscreen} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, display: 'flex' }} title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
+                                {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                            </button>
+                        </div>
                     </div>
 
                     <div style={{ position: 'relative' }}>
@@ -234,6 +297,7 @@ const CallGraphViewer: React.FC<CallGraphViewerProps> = ({ projectId, commitHash
                     )}
                 </Panel>
             </ReactFlow>
+            </ReactFlowProvider>
         </div>
     )
 }

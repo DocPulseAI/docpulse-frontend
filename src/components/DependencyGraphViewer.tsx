@@ -1,18 +1,19 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import ReactFlow, {
     Background,
     Controls,
-    MarkerType,
     useEdgesState,
     useNodesState,
     Node,
     Edge,
     Panel,
+    ReactFlowInstance,
+    ReactFlowProvider
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import dagre from 'dagre'
 import { intelligenceApi } from '../services/api'
-import { GitFork, Search, X } from 'lucide-react'
+import { GitFork, Search, X, ChevronUp, ChevronDown, Maximize2, Minimize2 } from 'lucide-react'
 
 interface DependencyGraphViewerProps {
     projectId: string
@@ -20,13 +21,23 @@ interface DependencyGraphViewerProps {
     onNodeClick?: (label: string) => void
 }
 
-const nodeWidth = 220
-const nodeHeight = 50
+import { nodeTypes, applyEdgeDefaults, EDGE_DEFAULTS } from './edgeConfig'
+
+const nodeWidth = 200
+const nodeHeight = 90
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
     const dagreGraph = new dagre.graphlib.Graph()
     dagreGraph.setDefaultEdgeLabel(() => ({}))
-    dagreGraph.setGraph({ rankdir: direction })
+    dagreGraph.setGraph({ 
+        rankdir: direction, 
+        ranker: 'tight-tree',
+        ranksep: 60,
+        nodesep: 16,
+        edgesep: 10,
+        marginx: 40,
+        marginy: 40
+    })
 
     nodes.forEach((node) => {
         dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight })
@@ -68,6 +79,29 @@ const DependencyGraphViewer: React.FC<DependencyGraphViewerProps> = ({ projectId
     // Focus state
     const [focusedNode, setFocusedNode] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
+    const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null)
+    const [isFullscreen, setIsFullscreen] = useState(false)
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement)
+            if (rfInstance) {
+                setTimeout(() => rfInstance.fitView({ padding: 0.12, duration: 400 }), 100)
+            }
+        }
+        document.addEventListener('fullscreenchange', handleFullscreenChange)
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    }, [rfInstance])
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            containerRef.current?.requestFullscreen().catch(err => console.error(err))
+        } else {
+            document.exitFullscreen()
+        }
+    }
+    const [panelCollapsed, setPanelCollapsed] = useState(false)
 
     useEffect(() => {
         const fetchDependencies = async () => {
@@ -91,35 +125,60 @@ const DependencyGraphViewer: React.FC<DependencyGraphViewerProps> = ({ projectId
 
                 setCycles(circular)
 
-                const initialNodes: Node[] = modules.map((module: string) => ({
-                    id: module,
-                    data: { label: module.split('/').pop() || module, fullPath: module },
-                    position: { x: 0, y: 0 },
-                    style: {
-                        background: 'var(--bg-default)',
-                        color: 'var(--text-primary)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '10px 14px',
-                        fontSize: 12,
-                        fontFamily: 'var(--font-mono)',
-                        boxShadow: 'var(--shadow-sm)',
-                        width: nodeWidth,
-                    },
-                }))
+                const circularSet = new Set<string>()
+                circular.forEach((cycle: string[]) => cycle.forEach(node => circularSet.add(node)))
 
-                const initialEdges: Edge[] = dependencies.map((edge: any, index: number) => ({
+                // Simple BFS to find depth level
+                const incomingEdgesCount: Record<string, number> = {}
+                modules.forEach((m: string) => incomingEdgesCount[m] = 0)
+                dependencies.forEach((d: any) => {
+                    if (incomingEdgesCount[d.to] !== undefined) {
+                        incomingEdgesCount[d.to]++
+                    }
+                })
+                
+                let currentLevel = 0;
+                let queue = modules.filter((m: string) => incomingEdgesCount[m] === 0);
+                const depthMap: Record<string, number> = {};
+                
+                while (queue.length > 0) {
+                    const nextQueue: string[] = [];
+                    queue.forEach((nodeId: string) => {
+                        if (depthMap[nodeId] === undefined) {
+                            depthMap[nodeId] = currentLevel;
+                            dependencies.filter((d: any) => d.from === nodeId).forEach((d: any) => {
+                                nextQueue.push(d.to);
+                            });
+                        }
+                    });
+                    queue = nextQueue;
+                    currentLevel++;
+                }
+
+                const initialNodes: Node[] = modules.map((module: string) => {
+                    return {
+                        id: String(module),
+                        type: 'custom',
+                        data: { 
+                            label: module.split('/').pop() || module, 
+                            fullPath: String(module), 
+                            type: 'Module',
+                            description: String(module),
+                            isCyclic: circularSet.has(module),
+                            depthLevel: depthMap[module] ?? 0
+                        },
+                        position: { x: 0, y: 0 },
+                    }
+                })
+
+                const rawEdges: Edge[] = dependencies.map((edge: any, index: number) => ({
                     id: `dep-edge-${index}`,
-                    source: edge.from,
-                    target: edge.to,
-                    type: 'smoothstep',
-                    markerEnd: {
-                        type: MarkerType.ArrowClosed,
-                        color: 'var(--text-muted)',
-                    },
-                    style: { stroke: 'var(--border-default)', strokeWidth: 1.5 },
+                    source: String(edge.from),
+                    target: String(edge.to),
+                    label: 'depends_on',
                 }))
-
+                const initialEdges = applyEdgeDefaults(rawEdges)
+                
                 const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
                     initialNodes,
                     initialEdges,
@@ -138,6 +197,14 @@ const DependencyGraphViewer: React.FC<DependencyGraphViewerProps> = ({ projectId
         fetchDependencies()
     }, [projectId, commitHash, setEdges, setNodes])
 
+    useEffect(() => {
+        if (allNodes.length === 0 || !rfInstance) return;
+        const id = setTimeout(() => {
+            rfInstance.fitView({ padding: 0.12, duration: 400 });
+        }, 60);
+        return () => clearTimeout(id);
+    }, [allNodes.length, rfInstance]);
+
     // Filter nodes based on focus and search
     useEffect(() => {
         let visibleNodes = [...allNodes]
@@ -152,51 +219,72 @@ const DependencyGraphViewer: React.FC<DependencyGraphViewerProps> = ({ projectId
             visibleNodes = allNodes.filter(n => connectedNodeIds.has(n.id))
             visibleEdges = connectedEdges
             
-            // Highlight focused node
+            // For custom nodes, highlight via 'selected' or style overrides
             visibleNodes = visibleNodes.map(n => ({
                 ...n,
+                selected: n.id === focusedNode,
                 style: {
-                    ...n.style,
-                    border: n.id === focusedNode ? '2px solid var(--accent-primary)' : '1px solid var(--border-default)',
-                    background: n.id === focusedNode ? 'var(--accent-primary-soft)' : 'var(--bg-default)',
-                    opacity: n.id !== focusedNode ? 0.8 : 1
+                    opacity: n.id !== focusedNode ? 0.4 : 1
                 }
             }))
+            
+            if (rfInstance) {
+                setTimeout(() => {
+                    rfInstance.fitView({ nodes: visibleNodes, duration: 800, padding: 0.2 })
+                }, 50)
+            }
         } else if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase()
+            const matchedNodes: Node[] = []
+            
             visibleNodes = allNodes.map(n => {
                 const isMatch = n.data.fullPath.toLowerCase().includes(query)
+                if (isMatch) matchedNodes.push(n)
                 return {
                     ...n,
                     style: {
-                        ...n.style,
-                        border: isMatch ? '2px solid var(--accent-primary)' : '1px solid var(--border-default)',
                         opacity: isMatch ? 1 : 0.3
                     }
                 }
             })
+            
+            if (rfInstance && matchedNodes.length > 0) {
+                setTimeout(() => {
+                    rfInstance.fitView({ nodes: matchedNodes, duration: 800, padding: 0.2, maxZoom: 1.2 })
+                }, 50)
+            }
+        } else {
+            if (rfInstance && visibleNodes.length > 0) {
+                setTimeout(() => {
+                    rfInstance.fitView({ duration: 800, padding: 0.2 })
+                }, 50)
+            }
         }
 
         setNodes(visibleNodes)
         setEdges(visibleEdges)
-    }, [focusedNode, searchQuery, allNodes, allEdges, setNodes, setEdges])
+    }, [focusedNode, searchQuery, allNodes, allEdges, setNodes, setEdges, rfInstance])
 
     if (loading) return <div className="cr-doc-empty">Loading dependency graph...</div>
     if (analysisUnavailable) return <div className="cr-doc-empty">Analysis not available for this commit.</div>
     if (allNodes.length === 0) return <div className="cr-doc-empty">No dependency data available for this commit.</div>
 
     return (
-        <div style={{ height: 600, width: '100%', position: 'relative', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
-            <ReactFlow
-                nodes={nodes}
-                edges={edges}
+        <div ref={containerRef} style={{ height: isFullscreen ? '100vh' : 600, width: '100%', position: 'relative', borderRadius: isFullscreen ? 0 : 'var(--radius-lg)', overflow: 'hidden', border: isFullscreen ? 'none' : '1px solid var(--border-default)', background: 'var(--bg-default)' }}>
+            <ReactFlowProvider>
+                <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
+                onInit={setRfInstance}
                 onNodeClick={(_, node) => {
                     setFocusedNode(node.id === focusedNode ? null : node.id)
                     onNodeClick?.(node.data.fullPath)
                 }}
                 onPaneClick={() => setFocusedNode(null)}
+                nodeTypes={nodeTypes}
+                defaultEdgeOptions={EDGE_DEFAULTS}
                 fitView
                 fitViewOptions={{ padding: 0.2, minZoom: 0.2, maxZoom: 1.2 }}
                 minZoom={0.1}
@@ -206,13 +294,18 @@ const DependencyGraphViewer: React.FC<DependencyGraphViewerProps> = ({ projectId
                 <Background color="var(--border-default)" gap={20} size={1} />
                 <Controls showInteractive={false} />
                 
-                <Panel position="top-left" style={{ background: 'var(--bg-default)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: 12, minWidth: 280 }}>
+                <Panel position="top-right" style={{ background: 'var(--bg-default)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: 12, minWidth: 280 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                             <GitFork size={14} /> 
                             {focusedNode ? 'Focus Mode' : 'System Dependencies'}
                         </span>
-                        <span className="cr-severity cr-severity--info" style={{ fontSize: 10 }}>{allNodes.length} modules</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <span className="cr-severity cr-severity--info" style={{ fontSize: 10 }}>{allNodes.length} modules</span>
+                            <button onClick={toggleFullscreen} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, display: 'flex' }} title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
+                                {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                            </button>
+                        </div>
                     </div>
 
                     <div style={{ position: 'relative' }}>
@@ -252,6 +345,7 @@ const DependencyGraphViewer: React.FC<DependencyGraphViewerProps> = ({ projectId
                     )}
                 </Panel>
             </ReactFlow>
+            </ReactFlowProvider>
         </div>
     )
 }
