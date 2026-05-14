@@ -1,208 +1,141 @@
-import React, { useEffect, useState, useCallback } from 'react'
-
-import { motion } from 'framer-motion'
-import { GitFork, AlertTriangle, Search } from 'lucide-react'
-import dagre from 'dagre'
+import React, { useEffect, useState } from 'react'
 import ReactFlow, {
-    useNodesState, useEdgesState, MarkerType, Background, Controls,
+    Background,
+    Controls,
+    MarkerType,
+    useEdgesState,
+    useNodesState,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { portalApi, PortalDeps } from '../services/portalApi'
+import { intelligenceApi } from '../services/api'
+import { GitFork } from 'lucide-react'
 
-
-const CYCLE_COLORS = ['#ef4444', '#f97316', '#8b5cf6', '#06b6d4']
-
-interface Props {
-    projectId: string;
-    commitHash: string;
+interface DependencyGraphViewerProps {
+    projectId: string
+    commitHash: string
+    onNodeClick?: (label: string) => void
 }
 
-const DependencyGraphViewer: React.FC<Props> = ({ projectId, commitHash }) => {
-    const [data, setData] = useState<PortalDeps | null>(null)
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+const DependencyGraphViewer: React.FC<DependencyGraphViewerProps> = ({ projectId, commitHash, onNodeClick }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([])
     const [edges, setEdges, onEdgesChange] = useEdgesState([])
-    const [search, setSearch] = useState('')
+    const [cycles, setCycles] = useState<string[][]>([])
+    const [loading, setLoading] = useState(true)
+    const [analysisUnavailable, setAnalysisUnavailable] = useState(false)
 
     useEffect(() => {
-        if (!projectId || !commitHash) return
-        setLoading(true)
-        portalApi.getDependencies(projectId, commitHash)
-            .then(r => {
-                if ((r.data as any).status === 'analysis_not_available') {
-                    setData(null)
+        const fetchDependencies = async () => {
+            if (!projectId || !commitHash) return
+            setLoading(true)
+            try {
+                const response = await intelligenceApi.getDependencies(projectId, commitHash)
+                const data = response.data
+                if (data?.status === 'analysis_not_available') {
+                    setAnalysisUnavailable(true)
+                    setNodes([])
+                    setEdges([])
+                    setCycles([])
                     return
                 }
-                setData(r.data)
-                buildGraph(r.data)
-            })
-            .catch(e => setError(e.message))
-            .finally(() => setLoading(false))
-    }, [projectId, commitHash])
+                setAnalysisUnavailable(false)
 
-    const buildGraph = useCallback((dep: PortalDeps) => {
-        const cycleModules = new Set(dep.circularDependencies.flat())
-        const moduleList = dep.modules ?? []
+                const modules = Array.isArray(data?.modules) ? data.modules : []
+                const dependencies = Array.isArray(data?.dependencies) ? data.dependencies : []
+                const circular = Array.isArray(data?.circular_dependencies) ? data.circular_dependencies : []
 
-        const cycleEdgePairs = new Set(
-            dep.circularDependencies.flatMap(cycle =>
-                cycle.map((m, i) => `${m}->${cycle[(i + 1) % cycle.length]}`)
-            )
-        )
+                setCycles(circular)
 
-        const dagreGraph = new dagre.graphlib.Graph()
-        dagreGraph.setDefaultEdgeLabel(() => ({}))
-        dagreGraph.setGraph({ rankdir: 'LR', nodesep: 40, ranksep: 100 })
+                const processedNodes = modules.map((module: string, index: number) => ({
+                    id: module,
+                    data: { label: module },
+                    position: {
+                        x: (index % 5) * 190,
+                        y: Math.floor(index / 5) * 95,
+                    },
+                    style: {
+                        background: 'var(--bg-default)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        padding: '8px 10px',
+                    },
+                }))
 
-        const rawNodes = moduleList.map((mod) => ({
-            id: mod,
-            data: { label: mod.split('/').pop() ?? mod },
-            position: { x: 0, y: 0 },
-            style: {
-                background: cycleModules.has(mod) ? '#fef2f2' : '#f8fafc',
-                border: cycleModules.has(mod) ? '2px solid #ef4444' : '1px solid #e2e8f0',
-                borderRadius: 8,
-                padding: '6px 10px',
-                fontSize: 11,
-                color: cycleModules.has(mod) ? '#dc2626' : '#334155',
-                width: 180,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                transition: 'opacity 0.2s',
+                const processedEdges = dependencies.map((edge: any, index: number) => ({
+                    id: `dep-edge-${index}`,
+                    source: edge.from,
+                    target: edge.to,
+                    markerEnd: {
+                        type: MarkerType.ArrowClosed,
+                        color: '#64748b',
+                    },
+                    style: {
+                        stroke: '#94a3b8',
+                    },
+                }))
+
+                setNodes(processedNodes)
+                setEdges(processedEdges)
+            } finally {
+                setLoading(false)
             }
-        }))
+        }
 
-        const rawEdges = dep.dependencies.map((e, i) => {
-            const isCyclic = cycleEdgePairs.has(`${e.from}->${e.to}`)
-            return {
-                id: `dep-${i}`,
-                source: e.from,
-                target: e.to,
-                markerEnd: { type: MarkerType.ArrowClosed, color: isCyclic ? '#ef4444' : '#94a3b8' },
-                style: { stroke: isCyclic ? '#ef4444' : '#cbd5e1', strokeWidth: isCyclic ? 2 : 1, transition: 'opacity 0.2s' },
-                animated: isCyclic,
-            }
-        })
+        fetchDependencies()
+    }, [projectId, commitHash, setEdges, setNodes])
 
-        rawNodes.forEach((n: any) => dagreGraph.setNode(n.id, { width: 180, height: 40 }))
-        rawEdges.forEach((e: any) => dagreGraph.setEdge(e.source, e.target))
+    if (loading) {
+        return <div className="intel-empty-state intel-graph-height">Loading dependency graph...</div>
+    }
 
-        dagre.layout(dagreGraph)
+    if (analysisUnavailable) {
+        return <div className="intel-empty-state intel-graph-height">Analysis not available for this commit.</div>
+    }
 
-        const processedNodes = rawNodes.map((node: any) => {
-            const nodeWithPosition = dagreGraph.node(node.id)
-            return {
-                ...node,
-                targetPosition: 'left' as any,
-                sourcePosition: 'right' as any,
-                position: {
-                    x: nodeWithPosition.x - 90,
-                    y: nodeWithPosition.y - 20,
-                }
-            }
-        })
-
-        setNodes(processedNodes)
-        setEdges(rawEdges)
-    }, [setNodes, setEdges])
-
-    useEffect(() => {
-        if (!data) return
-        const s = search.toLowerCase()
-        const matchedModules = new Set(data.modules.filter(m => (m.split('/').pop() ?? m).toLowerCase().includes(s)))
-        
-        setNodes(nds => nds.map(n => {
-            const isMatch = !s || matchedModules.has(n.id)
-            return { ...n, style: { ...n.style, opacity: isMatch ? 1 : 0.2 } }
-        }))
-        setEdges(eds => eds.map(e => {
-            const isMatch = !s || matchedModules.has(e.source) || matchedModules.has(e.target)
-            return { ...e, style: { ...e.style, opacity: isMatch ? 1 : 0.1 } }
-        }))
-    }, [search, data, setNodes, setEdges])
-
-    if (loading) return (
-        <div className="cr-card">
-            <div className="cr-loading" style={{ height: 400 }}><div className="cr-spinner" /></div>
-        </div>
-    )
+    if (nodes.length === 0) {
+        return <div className="intel-empty-state intel-graph-height">No dependency data available for this commit.</div>
+    }
 
     return (
-        <div className="cr-stack">
-            {/* ── Circular Dep Alert ── */}
-            {data && data.circularDependencies.length > 0 && (
-                <motion.div
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    style={{ background: 'var(--severity-critical-glow)', border: '1px solid var(--severity-critical)', borderRadius: 'var(--radius-lg)', padding: 16 }}
+        <div className="intel-graph-stack">
+            <div className="intel-graph-toolbar">
+                <div className="intel-legend-row">
+                    <span className="intel-chip"><GitFork size={12} /> Modules {nodes.length}</span>
+                    <span className="intel-chip">Dependencies {edges.length}</span>
+                </div>
+            </div>
+
+            <div className="intel-graph-shell">
+                <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onNodeClick={(_, node) => onNodeClick?.(node.data.label)}
+                    fitView
+                    fitViewOptions={{ padding: 0.2 }}
+                    minZoom={0.3}
+                    maxZoom={1.5}
                 >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--severity-critical)', marginBottom: 12 }}>
-                        <AlertTriangle size={16} />
-                        <span style={{ fontWeight: 600, fontSize: 13 }}>
-                            {data.circularDependencies.length} Circular Dependenc{data.circularDependencies.length > 1 ? 'ies' : 'y'} Detected
-                        </span>
-                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                            These create tight coupling that makes code hard to test and refactor
-                        </span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {data.circularDependencies.map((cycle, i) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ width: 8, height: 8, borderRadius: 4, background: CYCLE_COLORS[i % CYCLE_COLORS.length] }} />
-                                <code style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--severity-critical)', background: 'var(--bg-subtle)', padding: '4px 8px', borderRadius: 4 }}>
-                                    {[...cycle, cycle[0]].join(' → ')}
-                                </code>
+                    <Background color="#dbe3ec" gap={18} />
+                    <Controls />
+                </ReactFlow>
+            </div>
+
+            <div className="intel-cycles">
+                <div className="intel-cycles-title">Circular Dependencies</div>
+                {cycles.length === 0 ? (
+                    <div className="intel-cycles-empty">No circular dependencies detected.</div>
+                ) : (
+                    <div className="intel-cycles-list">
+                        {cycles.map((cycle, index) => (
+                            <div key={`cycle-${index}`} className="intel-cycle-item">
+                                {cycle.join(' -> ')}
                             </div>
                         ))}
                     </div>
-                </motion.div>
-            )}
-
-            {/* ── Graph ── */}
-            {error || !data ? (
-                <div className="cr-card">
-                    <div className="cr-doc-empty">
-                        <GitFork size={36} className="text-slate-300" style={{ opacity: 0.5, marginBottom: 12 }} />
-                        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{error ?? 'No dependency data available for this commit.'}</p>
-                    </div>
-                </div>
-            ) : (
-                <div className="cr-card" style={{ height: 600, display: 'flex', flexDirection: 'column' }}>
-                    <div className="cr-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border-default)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <h3 className="cr-card-title">Module Dependency Graph</h3>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                                <span className="cr-severity cr-severity--info" style={{ fontSize: 10 }}>{data.totalModules} Modules</span>
-                                <span className="cr-severity cr-severity--info" style={{ fontSize: 10 }}>{data.totalDependencies} Dependencies</span>
-                                {data.circularDependencies.length > 0 && <span className="cr-severity cr-severity--critical" style={{ fontSize: 10 }}>{data.circularDependencies.length} Cycles</span>}
-                            </div>
-                        </div>
-                        <div style={{ position: 'relative', width: 250 }}>
-                            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                            <input 
-                                type="text"
-                                placeholder="Search modules..."
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                style={{ width: '100%', padding: '6px 10px 6px 30px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-subtle)', color: 'var(--text-primary)', fontSize: 12, outline: 'none' }}
-                            />
-                        </div>
-                    </div>
-                    <div style={{ flex: 1, position: 'relative' }}>
-                        <ReactFlow
-                            nodes={nodes} edges={edges}
-                            onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-                            fitView fitViewOptions={{ padding: 0.15 }}
-                            minZoom={0.2} maxZoom={2}
-                        >
-                            <Background color="var(--border-default)" gap={20} />
-                            <Controls style={{ background: 'var(--bg-default)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }} />
-                        </ReactFlow>
-                    </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     )
 }

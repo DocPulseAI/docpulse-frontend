@@ -9,11 +9,10 @@ import {
 import { projectsApi, documentsApi, webhookApi, DocumentVersion, WebhookRun, IntelligenceView } from '../services/api'
 import DashboardLayout from '../components/DashboardLayout'
 import DocumentList from '../components/DocumentList'
+import CodeSearchPanel from '../components/CodeSearchPanel'
 import DependencyGraphViewer from '../components/DependencyGraphViewer'
-import ArchitectureGraphViewer from '../components/ArchitectureGraphViewer'
 import CallGraphViewer from '../components/CallGraphViewer'
-import IntelligenceOverviewWidget from '../components/IntelligenceOverviewWidget'
-import IntelligenceApisWidget from '../components/IntelligenceApisWidget'
+import ArchitectureGraphViewer from '../components/ArchitectureGraphViewer'
 import IntelligenceStatusBadge from '../components/IntelligenceStatusBadge'
 import { Github, Users, Users2, Clock, Shield, Trash2, ChevronRight, Eye, EyeOff, Tag, GitBranch, FileText, Edit3, History, Sparkles, CheckCircle2, AlertCircle, X, Loader2 } from 'lucide-react'
 import { useIntelligenceViewResolver } from '../hooks/useIntelligenceViewResolver'
@@ -366,43 +365,65 @@ const ProjectDetail = () => {
           {activeTab === 'intelligence' && (
             <div className="cr-stack" style={{ gap: 24 }}>
               {analysisLoading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-                  <Loader2 className="cr-spinner text-blue-500" size={32} />
+                <div className="flex justify-center p-12">
+                  <Loader2 className="animate-spin text-blue-500" size={32} />
                 </div>
               ) : !latestCommitHash ? (
                 <div className="cr-doc-empty">{resolverError || 'No analyzed commit found for this project yet.'}</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                  <div className="cr-card" style={{ borderLeft: '4px solid var(--accent-primary)' }}>
-                    <div className="cr-card-header" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>System Intelligence Active</h4>
-                        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                <div className="space-y-6">
+                  <div className="cr-analysis-card intel-panel border-l-4 border-l-blue-500">
+                    <div className="cr-analysis-card-header intel-panel-header">
+                      <div className="intel-panel-title-wrap">
+                        <h4>System Intelligence Active</h4>
+                        <span className="intel-panel-subtitle">
                           {resolverState.replace('_', ' ')} for {publishedIntelligenceView?.refName || 'this project'}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ background: 'var(--bg-subtle)', padding: '4px 8px', borderRadius: 6, fontSize: 13, fontFamily: 'var(--font-mono)' }}>{latestCommitHash.substring(0, 7)}</span>
-                        <IntelligenceStatusBadge state={resolverState as any} />
+                        <span className="intel-chip">{latestCommitHash.substring(0, 7)}</span>
+                      <IntelligenceStatusBadge state={resolverState as any} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <CodeSearchPanel projectId={currentProject.id} commitHash={latestCommitHash} />
+                    <div className="cr-analysis-card intel-panel">
+                      <div className="cr-analysis-card-header intel-panel-header">
+                        <div className="intel-panel-title-wrap">
+                          <h4>Dependency Graph</h4>
+                          <span className="intel-panel-subtitle">Module-level dependencies and cycle detection</span>
+                        </div>
+                      </div>
+                      <div className="intel-panel-body">
+                        <DependencyGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
                       </div>
                     </div>
                   </div>
 
-                  <IntelligenceOverviewWidget projectId={currentProject.id} commitHash={latestCommitHash} />
-                  
-                  <DependencyGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
-                  
-                  <ArchitectureGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
-                  
-                  <CallGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
-                  
-                  <div className="cr-card">
-                      <div className="cr-card-header">
-                          <h3 className="cr-card-title">API Endpoints</h3>
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="cr-analysis-card intel-panel">
+                      <div className="cr-analysis-card-header intel-panel-header">
+                        <div className="intel-panel-title-wrap">
+                          <h4>Call Graph</h4>
+                          <span className="intel-panel-subtitle">Controller to service request flow</span>
+                        </div>
                       </div>
-                      <div className="cr-card-body">
-                          <IntelligenceApisWidget projectId={currentProject.id} commitHash={latestCommitHash} />
+                      <div className="intel-panel-body">
+                        <CallGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
                       </div>
+                    </div>
+
+                    <div className="cr-analysis-card intel-panel">
+                      <div className="cr-analysis-card-header intel-panel-header">
+                        <div className="intel-panel-title-wrap">
+                          <h4>Architecture Graph</h4>
+                          <span className="intel-panel-subtitle">Repository-level knowledge graph</span>
+                        </div>
+                      </div>
+                      <div className="intel-panel-body">
+                        <ArchitectureGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

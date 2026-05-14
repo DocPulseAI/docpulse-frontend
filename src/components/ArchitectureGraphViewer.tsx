@@ -1,119 +1,158 @@
 import React, { useEffect, useState } from 'react'
+import ReactFlow, {
+    Background,
+    Controls,
+    MarkerType,
+    useEdgesState,
+    useNodesState,
+} from 'reactflow'
+import 'reactflow/dist/style.css'
+import { intelligenceApi } from '../services/api'
+import { Boxes } from 'lucide-react'
 
-import { motion } from 'framer-motion'
-import { Layers, FileCode, ChevronRight } from 'lucide-react'
-import { portalApi, PortalArchFile } from '../services/portalApi'
-import { MermaidBlock } from '../components/MarkdownRenderer'
-
-interface Props {
-    projectId: string;
-    commitHash: string;
+interface ArchitectureGraphViewerProps {
+    projectId: string
+    commitHash: string
+    onNodeClick?: (label: string) => void
 }
 
-const ArchitectureGraphViewer: React.FC<Props> = ({ projectId, commitHash }) => {
-    const [files, setFiles] = useState<PortalArchFile[]>([])
-    const [selected, setSelected] = useState<PortalArchFile | null>(null)
+const typeColumn: Record<string, number> = {
+    api: 0,
+    controller: 1,
+    service: 2,
+    entity: 3,
+    module: 4,
+}
+
+export const nodeTypeColor: Record<string, string> = {
+    api: '#0ea5e9',
+    controller: '#6366f1',
+    service: '#10b981',
+    entity: '#f59e0b',
+    module: '#64748b',
+}
+
+const ArchitectureGraphViewer: React.FC<ArchitectureGraphViewerProps> = ({ projectId, commitHash, onNodeClick }) => {
+    const [nodes, setNodes, onNodesChange] = useNodesState([])
+    const [edges, setEdges, onEdgesChange] = useEdgesState([])
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    const [analysisUnavailable, setAnalysisUnavailable] = useState(false)
 
     useEffect(() => {
-        if (!projectId || !commitHash) return
-        setLoading(true)
-        portalApi.getArchitecture(projectId, commitHash)
-            .then(r => {
-                const f = r.data.files
-                setFiles(f)
-                if (f.length > 0) setSelected(f[0])
-            })
-            .catch(e => setError(e.message))
-            .finally(() => setLoading(false))
-    }, [projectId, commitHash])
+        const fetchGraph = async () => {
+            if (!projectId || !commitHash) return
+            setLoading(true)
+            try {
+                const response = await intelligenceApi.getRepositoryGraph(projectId, commitHash)
+                const data = response.data
+                if (data?.status === 'analysis_not_available') {
+                    setAnalysisUnavailable(true)
+                    setNodes([])
+                    setEdges([])
+                    return
+                }
+                setAnalysisUnavailable(false)
 
-    const isMermaidContent = (content: string) => {
-        const t = content.trimStart()
-        return (
-            t.startsWith('graph') || t.startsWith('flowchart') ||
-            t.startsWith('sequenceDiagram') || t.startsWith('classDiagram') ||
-            t.startsWith('erDiagram') || t.startsWith('stateDiagram') ||
-            t.startsWith('gantt') || t.startsWith('pie') || t.startsWith('```mermaid')
-        )
+                const graphNodes = Array.isArray(data?.nodes) ? data.nodes : []
+                const graphEdges = Array.isArray(data?.edges) ? data.edges : []
+
+                const typeIndexMap: Record<string, number> = {}
+                const processedNodes = graphNodes.map((node: any) => {
+                    const type = String(node.type || 'module')
+                    const column = typeColumn[type] ?? 5
+                    const rowIndex = typeIndexMap[type] || 0
+                    typeIndexMap[type] = rowIndex + 1
+
+                    return {
+                        id: String(node.id),
+                        data: { label: String(node.id) },
+                        position: {
+                            x: column * 260,
+                            y: rowIndex * 105,
+                        },
+                        style: {
+                            background: 'var(--bg-default)',
+                            color: 'var(--text-primary)',
+                            border: `2px solid ${nodeTypeColor[type] || '#64748b'}`,
+                            borderRadius: '6px',
+                            padding: '8px 10px',
+                            width: 220,
+                        },
+                    }
+                })
+
+                const processedEdges = graphEdges.map((edge: any, index: number) => ({
+                    id: `repo-edge-${index}`,
+                    source: String(edge.from),
+                    target: String(edge.to),
+                    label: String(edge.type || ''),
+                    markerEnd: {
+                        type: MarkerType.ArrowClosed,
+                        color: '#475569',
+                    },
+                    style: {
+                        stroke: '#64748b',
+                    },
+                    labelStyle: {
+                        fill: '#334155',
+                        fontSize: 11,
+                    },
+                }))
+
+                setNodes(processedNodes)
+                setEdges(processedEdges)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchGraph()
+    }, [projectId, commitHash, setEdges, setNodes])
+
+    if (loading) {
+        return <div className="intel-empty-state intel-graph-height-lg">Loading architecture graph...</div>
+    }
+
+    if (analysisUnavailable) {
+        return <div className="intel-empty-state intel-graph-height-lg">Analysis not available for this commit.</div>
+    }
+
+    if (nodes.length === 0) {
+        return <div className="intel-empty-state intel-graph-height-lg">No architecture graph data available for this commit.</div>
     }
 
     return (
-        <div className="cr-card">
-            <div className="cr-card-header">
-                <h1 className="cr-card-title">
-                    <Layers size={18} />
-                    Architecture
-                </h1>
-                <p className="cr-card-subtitle">System structure, layers, and component relationships</p>
+        <div className="intel-graph-stack">
+            <div className="intel-graph-toolbar">
+                <div className="intel-legend-row">
+                    <span className="intel-chip"><Boxes size={12} /> Nodes {nodes.length}</span>
+                    <span className="intel-chip">Edges {edges.length}</span>
+                </div>
+                <div className="intel-legend-row">
+                    <span className="intel-legend-dot" style={{ background: nodeTypeColor.api }}>API</span>
+                    <span className="intel-legend-dot" style={{ background: nodeTypeColor.controller }}>Controller</span>
+                    <span className="intel-legend-dot" style={{ background: nodeTypeColor.service }}>Service</span>
+                    <span className="intel-legend-dot" style={{ background: nodeTypeColor.entity }}>Entity</span>
+                    <span className="intel-legend-dot" style={{ background: nodeTypeColor.module }}>Module</span>
+                </div>
             </div>
 
-            {loading ? (
-                <div className="cr-card-body">
-                    <div className="cr-loading-skeleton" style={{ height: 400 }} />
-                </div>
-            ) : error || files.length === 0 ? (
-                <div className="cr-card-body">
-                    <div className="cr-empty">
-                        <Layers size={36} className="text-slate-300" />
-                        <p>{error ?? 'No architecture diagrams available for this commit.'}</p>
-                        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 12 }}>Architecture diagrams are generated by the EPIC-2 pipeline.</p>
-                    </div>
-                </div>
-            ) : (
-                <div style={{ display: 'flex', borderTop: '1px solid var(--border-default)', minHeight: 500 }}>
-                    {/* File list sidebar */}
-                    <div style={{ width: 220, borderRight: '1px solid var(--border-default)', background: 'var(--bg-subtle)', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '12px 16px', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid var(--border-default)' }}>
-                            <FileCode size={14} />
-                            <span>{files.length} Diagram{files.length !== 1 ? 's' : ''}</span>
-                        </div>
-                        <div style={{ overflowY: 'auto', flex: 1 }}>
-                            {files.map((f, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => setSelected(f)}
-                                    style={{
-                                        width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: selected?.path === f.path ? 'var(--bg-default)' : 'transparent',
-                                        borderLeft: selected?.path === f.path ? '3px solid var(--accent-primary)' : '3px solid transparent',
-                                        cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                        borderBottom: '1px solid var(--border-default)'
-                                    }}
-                                >
-                                    <span style={{ fontSize: 13, color: selected?.path === f.path ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: selected?.path === f.path ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {f.name}
-                                    </span>
-                                    {selected?.path === f.path && <ChevronRight size={14} color="var(--accent-primary)" />}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Diagram canvas */}
-                    <div style={{ flex: 1, padding: 24, background: 'var(--bg-default)', overflow: 'auto' }}>
-                        {selected && (
-                            <motion.div
-                                key={selected.path}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                            >
-                                <div style={{ marginBottom: 20 }}>
-                                    <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>{selected.name}</h3>
-                                    <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, fontFamily: 'var(--font-mono)' }}>{selected.path}</p>
-                                </div>
-                                <div style={{ background: '#fff', padding: 20, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-default)' }}>
-                                    {isMermaidContent(selected.content) ? (
-                                        <MermaidBlock code={selected.content.replace(/^```mermaid\n?/, '').replace(/\n?```$/, '')} />
-                                    ) : (
-                                        <pre style={{ fontSize: 12, fontFamily: 'var(--font-mono)', overflowX: 'auto' }}>{selected.content}</pre>
-                                    )}
-                                </div>
-                            </motion.div>
-                        )}
-                    </div>
-                </div>
-            )}
+            <div className="intel-graph-shell intel-graph-shell-lg">
+                <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onNodeClick={(_, node) => onNodeClick?.(node.data.label)}
+                    fitView
+                    fitViewOptions={{ padding: 0.2 }}
+                    minZoom={0.3}
+                    maxZoom={1.5}
+                >
+                    <Background color="#dbe3ec" gap={18} />
+                    <Controls />
+                </ReactFlow>
+            </div>
         </div>
     )
 }

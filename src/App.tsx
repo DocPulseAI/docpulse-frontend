@@ -21,7 +21,7 @@ import DriftAnalysis from './pages/DriftAnalysis'
 import ProjectTeam from './pages/ProjectTeam'
 import Profile from './pages/Profile'
 import Repositories from './pages/Repositories'
-// Intelligence standalone shell pages removed
+import DeveloperIntelligencePortal from './pages/DeveloperIntelligencePortal'
 import LandingPage from './pages/LandingPage/LandingPage'
 import Signup from './pages/Signup'
 import VerifyOTP from './pages/VerifyOTP'
@@ -72,7 +72,14 @@ function App() {
           path="/projects/:id/team"
           element={<ProtectedRoute><ProjectTeam /></ProtectedRoute>}
         />
-        {/* Legacy intelligence routes removed, intelligence is now embedded in ProjectDetail again */}
+        <Route
+          path="/intelligence"
+          element={<ProtectedRoute><DeveloperIntelligencePortal /></ProtectedRoute>}
+        />
+        <Route
+          path="/projects/:id/intelligence"
+          element={<ProtectedRoute><DeveloperIntelligencePortal /></ProtectedRoute>}
+        />
         <Route
           path="/projects/:id/docs/:commit"
           element={<ProtectedRoute><DocumentViewerLayout /></ProtectedRoute>}
