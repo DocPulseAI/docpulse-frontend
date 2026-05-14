@@ -6,7 +6,9 @@ import ArchitectureGraph from '../components/ArchitectureGraph'
 import ExecutionFlow from '../components/ExecutionFlow'
 import MarkdownViewer from '../components/MarkdownViewer'
 import SearchBar from '../components/SearchBar'
-import { documentsApi, intelligenceApi } from '../services/api'
+import { intelligenceApi } from '../services/api'
+import { useIntelligenceViewResolver } from '../hooks/useIntelligenceViewResolver'
+import IntelligenceStatusBadge from '../components/IntelligenceStatusBadge'
 
 interface IntelligencePageProps {
     type: 'overview' | 'architecture' | 'dependencies' | 'execution-flow' | 'api' | 'impact' | 'adr'
@@ -19,24 +21,15 @@ const IntelligencePage: React.FC<IntelligencePageProps> = ({ type }) => {
 
     // For demo/standalone purposes, we might need a default commit if not provided
     // In a real app, this would come from a version selector
-    const [commitHash, setCommitHash] = useState<string>('')
+    const {
+        commitHash,
+        activeView,
+        state: viewState,
+        loading: viewLoading,
+        error: viewError,
+    } = useIntelligenceViewResolver(projectId)
     const [content, setContent] = useState<any>(null)
     const [loading, setLoading] = useState(false)
-
-    useEffect(() => {
-        const fetchLatestCommit = async () => {
-            if (!projectId) return
-            try {
-                const docsRes = await documentsApi.list(projectId)
-                if (docsRes.data && docsRes.data.documents && docsRes.data.documents.length > 0) {
-                    setCommitHash(docsRes.data.documents[0].commit)
-                }
-            } catch (err) {
-                console.error('Failed to fetch commit:', err)
-            }
-        }
-        fetchLatestCommit()
-    }, [projectId])
 
     useEffect(() => {
         const fetchContent = async () => {
@@ -79,7 +72,8 @@ const IntelligencePage: React.FC<IntelligencePageProps> = ({ type }) => {
             return <div className="p-8 text-center text-slate-500">Please select a project to view intelligence data.</div>
         }
 
-        if (loading) return <div className="p-8 text-center">Loading {type}...</div>
+        if (viewLoading || loading) return <div className="p-8 text-center">Loading {type}...</div>
+        if (viewError) return <div className="p-8 text-center text-slate-500">{viewError}</div>
 
         switch (type) {
             case 'overview':
@@ -108,6 +102,12 @@ const IntelligencePage: React.FC<IntelligencePageProps> = ({ type }) => {
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white capitalize">{type.replace('-', ' ')}</h1>
                     <SearchBar projectId={projectId || ''} commitHash={commitHash} />
                 </div>
+                {activeView && (
+                    <div className="text-sm text-slate-500 flex items-center gap-2">
+                        <IntelligenceStatusBadge state={viewState as any} />
+                        <span>{activeView.refName} at {activeView.commitHash.substring(0, 7)}</span>
+                    </div>
+                )}
                 <div className="flex-1 min-h-0">
                     {renderContent()}
                 </div>

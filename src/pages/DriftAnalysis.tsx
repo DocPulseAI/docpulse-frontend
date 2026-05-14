@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import DashboardLayout from '../components/DashboardLayout'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchProjects } from '../store/slices/projectsSlice'
-import { documentsApi, DocumentVersion } from '../services/api'
+import { documentsApi, DocumentVersion, projectsApi } from '../services/api'
 import { AlertTriangle, Shield, Activity } from 'lucide-react'
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
@@ -59,11 +59,23 @@ export default function DriftAnalysis() {
   useEffect(() => {
     if (!projectId) return
     setIsLoading(true)
-    documentsApi.list(projectId)
-      .then((r) => {
-        setDocuments(r.data.documents || [])
-        const first = r.data.documents?.[0]?.commit || ''
-        setCommit(first)
+    Promise.allSettled([
+      projectsApi.getDefaultIntelligenceView(projectId),
+      documentsApi.list(projectId),
+    ])
+      .then(([viewResult, docsResult]) => {
+        const docs =
+          docsResult.status === 'fulfilled'
+            ? (docsResult.value.data.documents || [])
+            : []
+        setDocuments(docs)
+
+        const resolvedCommit =
+          viewResult.status === 'fulfilled'
+            ? (viewResult.value.data.view?.commitHash || '')
+            : ''
+
+        setCommit(resolvedCommit || docs?.[0]?.commit || '')
       })
       .finally(() => setIsLoading(false))
   }, [projectId])

@@ -108,6 +108,7 @@ const Dashboard = () => {
   const breakingChanges = overview?.breakingChanges || []
   const recentCommits = overview?.recentCommits || []
   const driftFindings = overview?.driftFindings || []
+  const intelligenceSummary = overview?.intelligenceSummary || []
 
   return (
     <DashboardLayout>
@@ -226,6 +227,30 @@ const Dashboard = () => {
 
           {/* Right: lists */}
           <div className="cr-stack">
+            <div className="cr-card">
+              <div className="cr-card-header">
+                <h3 className="cr-card-title"><Shield size={14} /> Published Intelligence</h3>
+              </div>
+              <div className="cr-card-body cr-card-body--flush">
+                {intelligenceSummary.length === 0 ? (
+                  <div className="cr-list-empty">No published intelligence views yet</div>
+                ) : intelligenceSummary.slice(0, 6).map((item) => (
+                  <button
+                    key={`${item.projectId}-${item.viewKey}`}
+                    className="cr-list-item"
+                    onClick={() => navigate(`/projects/${item.projectId}?tab=intelligence`)}
+                  >
+                    <span className="cr-list-primary">{item.projectName}</span>
+                    <span className="cr-list-secondary">{item.refName}</span>
+                    <span className={`cr-severity cr-severity--${item.runStatus === 'failed' ? 'high' : item.runStatus === 'partial' ? 'medium' : 'low'}`}>
+                      {item.viewKey}
+                    </span>
+                    <span className="cr-list-meta">{new Date(item.publishedAt).toLocaleDateString()}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Recent commits */}
             <div className="cr-card">
               <div className="cr-card-header">

@@ -7,11 +7,13 @@ import DependencyGraphViewer from '../components/DependencyGraphViewer'
 import CallGraphViewer from '../components/CallGraphViewer'
 import ArchitectureGraphViewer from '../components/ArchitectureGraphViewer'
 import SequenceDiagramViewer from '../components/SequenceDiagramViewer'
-import { intelligenceApi, documentsApi } from '../services/api'
+import IntelligenceStatusBadge from '../components/IntelligenceStatusBadge'
+import { intelligenceApi } from '../services/api'
 import { useAppDispatch } from '../store/hooks'
 import { fetchProjects } from '../store/slices/projectsSlice'
 import { Clock, Hash, Book, ChevronRight, Sparkles, Layers, GitFork, Workflow, Search, AlertCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useIntelligenceViewResolver } from '../hooks/useIntelligenceViewResolver'
 
 const DeveloperIntelligencePortal: React.FC = () => {
     const { id: routeId } = useParams<{ id?: string }>()
@@ -21,7 +23,15 @@ const DeveloperIntelligencePortal: React.FC = () => {
     const { currentProject, projects, isLoading: projectsLoading } = useAppSelector((state) => state.projects)
     const projectId = routeId || currentProject?.id || searchParams.get('projectId')
 
-    const [commitHash, setCommitHash] = useState<string>(searchParams.get('sha') || '')
+    const {
+        loading: viewLoading,
+        error: viewError,
+        state: viewState,
+        activeView,
+        availableViews,
+        commitHash,
+        resolveView,
+    } = useIntelligenceViewResolver(projectId)
     const [searchQuery, setSearchQuery] = useState('')
 
     const handleSymbolSearch = (label: string) => {
@@ -41,11 +51,6 @@ const DeveloperIntelligencePortal: React.FC = () => {
 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-
-    useEffect(() => {
-        // Reset commit hash when project changes to avoid showing stale graphs from the previous project
-        setCommitHash(searchParams.get('sha') || '')
-    }, [projectId])
 
     useEffect(() => {
         const fetchAnalysis = async () => {
@@ -68,21 +73,9 @@ const DeveloperIntelligencePortal: React.FC = () => {
         fetchAnalysis()
     }, [projectId, commitHash])
 
-    useEffect(() => {
-        const fetchLatestCommit = async () => {
-            // Only fetch if we don't have a commit hash for the current project
-            if (!projectId || commitHash) return
-            try {
-                const docsRes = await documentsApi.list(projectId)
-                if (docsRes.data && docsRes.data.documents && docsRes.data.documents.length > 0) {
-                    setCommitHash(docsRes.data.documents[0].commit)
-                }
-            } catch (err) {
-                console.error('Failed to fetch latest commit:', err)
-            }
-        }
-        fetchLatestCommit()
-    }, [projectId, commitHash])
+    const handleViewChange = async (viewKey: string) => {
+        await resolveView(viewKey)
+    }
 
     if (!projectId) {
         return (
@@ -163,6 +156,19 @@ const DeveloperIntelligencePortal: React.FC = () => {
                             </div>
                         )}
                         <div className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                            {availableViews.length > 0 && (
+                                <select
+                                    value={activeView?.viewKey || 'default'}
+                                    onChange={(e) => handleViewChange(e.target.value)}
+                                    className="text-xs border-0 bg-transparent text-slate-600 focus:outline-none"
+                                >
+                                    {availableViews.map((view) => (
+                                        <option key={view.viewKey} value={view.viewKey}>
+                                            {view.viewKey === 'default' ? 'Default' : view.refName}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
                             <div className="flex items-center text-xs font-mono text-slate-500">
                                 <Hash size={12} className="mr-1" />
                                 {commitHash.substring(0, 7) || 'HEAD'}
@@ -170,9 +176,7 @@ const DeveloperIntelligencePortal: React.FC = () => {
                             {!loading && (
                                 <>
                                     <div className="h-4 w-px bg-slate-200" />
-                                    <div className="flex items-center text-xs font-bold text-emerald-600 uppercase tracking-wider">
-                                        Active
-                                    </div>
+                                    <IntelligenceStatusBadge state={viewState as any} />
                                 </>
                             )}
                         </div>
@@ -180,15 +184,15 @@ const DeveloperIntelligencePortal: React.FC = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
-                    {loading ? (
+                    {viewLoading || loading ? (
                         <div className="flex flex-col items-center justify-center h-full space-y-4">
                             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                             <p className="text-slate-500 font-medium tracking-wide">Synthesizing intelligence artifacts...</p>
                         </div>
-                    ) : error ? (
+                    ) : (error || viewError) ? (
                         <div className="flex flex-col items-center justify-center h-full p-12">
                             <AlertCircle size={48} className="text-slate-300 mb-4" />
-                            <h3 className="text-lg font-semibold text-slate-600">{error}</h3>
+                            <h3 className="text-lg font-semibold text-slate-600">{error || viewError}</h3>
                             <p className="text-slate-400 text-sm mt-1 text-center max-w-md">
                                 We couldn't find the necessary artifacts for this commit. Architectural insights may not be available.
                             </p>
