@@ -14,7 +14,7 @@ import DependencyGraphViewer from '../components/DependencyGraphViewer'
 import CallGraphViewer from '../components/CallGraphViewer'
 import ArchitectureGraphViewer from '../components/ArchitectureGraphViewer'
 import IntelligenceStatusBadge from '../components/IntelligenceStatusBadge'
-import { Github, Users, Users2, Clock, Shield, Trash2, ChevronRight, Eye, EyeOff, Tag, GitBranch, FileText, Edit3, History, Sparkles, CheckCircle2, AlertCircle, X, Loader2 } from 'lucide-react'
+import { Github, Users, Users2, Clock, Shield, Trash2, ChevronRight, Eye, EyeOff, Tag, GitBranch, FileText, Edit3, History, Sparkles, CheckCircle2, AlertCircle, X, Loader2, Layers, Workflow } from 'lucide-react'
 import { useIntelligenceViewResolver } from '../hooks/useIntelligenceViewResolver'
 
 const inputStyle: React.CSSProperties = {
@@ -41,7 +41,7 @@ const ProjectDetail = () => {
   const { currentProject, isLoading, error } = useAppSelector((s) => s.projects)
   const { user } = useAppSelector((s) => s.auth)
 
-  type TabType = 'overview' | 'intelligence' | 'documents' | 'team' | 'members' | 'versioning' | 'settings'
+  type TabType = 'overview' | 'architecture' | 'apis_flows' | 'documents' | 'team' | 'members' | 'versioning' | 'settings'
   const [activeTab, setActiveTab] = useState<TabType>('overview')
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState({ name: '', description: '' })
@@ -80,8 +80,8 @@ const ProjectDetail = () => {
   const handleTabChange = (nextTab: TabType) => {
     setActiveTab(nextTab)
     const nextParams = new URLSearchParams(searchParams)
-    if (nextTab === 'intelligence') {
-      nextParams.set('tab', 'intelligence')
+    if (nextTab === 'architecture' || nextTab === 'apis_flows') {
+      nextParams.set('tab', nextTab)
     } else {
       nextParams.delete('tab')
     }
@@ -92,10 +92,10 @@ const ProjectDetail = () => {
   useEffect(() => { if (id) dispatch(fetchProjectById(id)); return () => { dispatch(clearCurrentProject()) } }, [dispatch, id])
   useEffect(() => {
     const tabParam = searchParams.get('tab')
-    if (tabParam === 'intelligence' && activeTab !== 'intelligence') {
-      setActiveTab('intelligence')
+    if ((tabParam === 'architecture' || tabParam === 'apis_flows') && activeTab !== tabParam) {
+      setActiveTab(tabParam as TabType)
     }
-    if (tabParam !== 'intelligence' && activeTab === 'intelligence') {
+    if (tabParam !== 'architecture' && tabParam !== 'apis_flows' && (activeTab === 'architecture' || activeTab === 'apis_flows')) {
       setActiveTab('overview')
     }
   }, [searchParams, activeTab])
@@ -274,7 +274,8 @@ const ProjectDetail = () => {
   // Build tabs list based on permissions
   const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
     { key: 'overview', label: 'Overview', icon: <Shield size={13} /> },
-    { key: 'intelligence', label: 'Intelligence', icon: <Sparkles size={13} /> },
+    { key: 'architecture', label: 'Architecture', icon: <Layers size={13} /> },
+    { key: 'apis_flows', label: 'APIs & Flows', icon: <Workflow size={13} /> },
     { key: 'documents', label: 'Documents', icon: <FileText size={13} /> },
     { key: 'team', label: 'Team', icon: <Users2 size={13} /> },
     { key: 'members', label: 'Members', icon: <Users size={13} /> },
@@ -287,11 +288,18 @@ const ProjectDetail = () => {
       <div className="cr-page cr-page--flush">
         {/* Header with breadcrumb + tabs */}
         <div style={{ padding: '10px 24px 0', background: 'var(--bg-default)', borderBottom: '1px solid var(--border-default)' }}>
-          <div className="cr-doc-breadcrumb" style={{ marginBottom: 8 }}>
-            <button style={{ background: 'none', border: 'none', color: 'var(--text-link)', cursor: 'pointer', fontSize: 12, padding: 0 }} onClick={() => navigate('/projects')}>Projects</button>
-            <ChevronRight size={10} />
-            <strong style={{ color: 'var(--text-primary)', fontSize: 12 }}>{currentProject.name}</strong>
-            <span className={`cr-severity ${roleBadgeClass(currentProject.memberRole)}`} style={{ marginLeft: 8 }}>{currentProject.memberRole}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+            <div className="cr-doc-breadcrumb">
+              <button style={{ background: 'none', border: 'none', color: 'var(--text-link)', cursor: 'pointer', fontSize: 12, padding: 0 }} onClick={() => navigate('/projects')}>Projects</button>
+              <ChevronRight size={10} />
+              <strong style={{ color: 'var(--text-primary)', fontSize: 12 }}>{currentProject.name}</strong>
+              <span className={`cr-severity ${roleBadgeClass(currentProject.memberRole)}`} style={{ marginLeft: 8 }}>{currentProject.memberRole}</span>
+            </div>
+            
+            {/* Global Search Bar */}
+            <div style={{ width: 300, zIndex: 100 }}>
+              <CodeSearchPanel projectId={currentProject.id} commitHash={latestCommitHash || 'HEAD'} compact={true} />
+            </div>
           </div>
           {error && <div style={{ padding: '6px 12px', marginBottom: 8, borderRadius: 'var(--radius-md)', background: 'var(--severity-critical-glow)', border: '1px solid var(--severity-critical)', fontSize: 12, color: 'var(--severity-critical)' }}>{error}</div>}
           <div className="cr-tabs" style={{ border: 'none', padding: 0, background: 'transparent' }}>
@@ -361,8 +369,8 @@ const ProjectDetail = () => {
             </div>
           )}
 
-          {/* ── Intelligence ── */}
-          {activeTab === 'intelligence' && (
+          {/* ── Architecture ── */}
+          {activeTab === 'architecture' && (
             <div className="cr-stack" style={{ gap: 24 }}>
               {analysisLoading ? (
                 <div className="flex justify-center p-12">
@@ -380,13 +388,24 @@ const ProjectDetail = () => {
                           {resolverState.replace('_', ' ')} for {publishedIntelligenceView?.refName || 'this project'}
                         </span>
                       </div>
-                        <span className="intel-chip">{latestCommitHash.substring(0, 7)}</span>
+                      <span className="intel-chip">{latestCommitHash.substring(0, 7)}</span>
                       <IntelligenceStatusBadge state={resolverState as any} />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <CodeSearchPanel projectId={currentProject.id} commitHash={latestCommitHash} />
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="cr-analysis-card intel-panel">
+                      <div className="cr-analysis-card-header intel-panel-header">
+                        <div className="intel-panel-title-wrap">
+                          <h4>Architecture Graph</h4>
+                          <span className="intel-panel-subtitle">Repository-level knowledge graph</span>
+                        </div>
+                      </div>
+                      <div className="intel-panel-body">
+                        <ArchitectureGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
+                      </div>
+                    </div>
+
                     <div className="cr-analysis-card intel-panel">
                       <div className="cr-analysis-card-header intel-panel-header">
                         <div className="intel-panel-title-wrap">
@@ -399,30 +418,31 @@ const ProjectDetail = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
 
-                  <div className="grid grid-cols-1 gap-6">
-                    <div className="cr-analysis-card intel-panel">
-                      <div className="cr-analysis-card-header intel-panel-header">
-                        <div className="intel-panel-title-wrap">
-                          <h4>Call Graph</h4>
-                          <span className="intel-panel-subtitle">Controller to service request flow</span>
-                        </div>
-                      </div>
-                      <div className="intel-panel-body">
-                        <CallGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
+          {/* ── APIs & Flows ── */}
+          {activeTab === 'apis_flows' && (
+            <div className="cr-stack" style={{ gap: 24 }}>
+              {analysisLoading ? (
+                <div className="flex justify-center p-12">
+                  <Loader2 className="animate-spin text-blue-500" size={32} />
+                </div>
+              ) : !latestCommitHash ? (
+                <div className="cr-doc-empty">{resolverError || 'No analyzed commit found for this project yet.'}</div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="cr-analysis-card intel-panel">
+                    <div className="cr-analysis-card-header intel-panel-header">
+                      <div className="intel-panel-title-wrap">
+                        <h4>Execution Traces</h4>
+                        <span className="intel-panel-subtitle">Controller to service request flow sequences</span>
                       </div>
                     </div>
-
-                    <div className="cr-analysis-card intel-panel">
-                      <div className="cr-analysis-card-header intel-panel-header">
-                        <div className="intel-panel-title-wrap">
-                          <h4>Architecture Graph</h4>
-                          <span className="intel-panel-subtitle">Repository-level knowledge graph</span>
-                        </div>
-                      </div>
-                      <div className="intel-panel-body">
-                        <ArchitectureGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
-                      </div>
+                    <div className="intel-panel-body">
+                      <CallGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
                     </div>
                   </div>
                 </div>

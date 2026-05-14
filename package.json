@@ -31,6 +31,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "d3": "^7.9.0",
+    "dagre": "^0.8.5",
     "framer-motion": "^12.34.0",
     "fuse.js": "^7.1.0",
     "lucide-react": "^0.563.0",
@@ -52,9 +53,10 @@
     "three": "^0.182.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
-    "@playwright/test": "^1.58.2",
+    "@types/dagre": "^0.7.54",
     "@types/node": "^25.4.0",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",

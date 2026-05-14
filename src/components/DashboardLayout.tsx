@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import {
     LayoutDashboard, FolderGit2, Settings,
     AlertTriangle, Search, Command, User,
-    LogOut, PanelLeft, Github, Sparkles
+    LogOut, PanelLeft, Github
 } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '../store/hooks'
 import { logout } from '../store/slices/authSlice'
@@ -27,7 +27,7 @@ interface DashboardLayoutProps {
 
 const sidebarSections: SidebarItem[][] = [
     [
-        { to: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
+        { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { to: '/projects', icon: FolderGit2, label: 'Projects' },
         { to: '/repositories', icon: Github, label: 'Repositories' },
     ],
@@ -95,21 +95,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         .filter((item) => item.severity === 'critical' || item.severity === 'high')
         .length
 
-    // Extract projectId for contextual navigation
+    // Extract projectId for contextual navigation (kept for other potential uses if any, though no longer used for sidebar)
     const projectPathMatch = location.pathname.match(/\/projects\/([^/]+)/)
     const projectId = projectPathMatch ? decodeURIComponent(projectPathMatch[1]) : null
-    const isInProject = !!projectId && !location.pathname.startsWith('/repositories')
-    const activeProjectTab = new URLSearchParams(location.search).get('tab')
 
-    const projectSections: SidebarItem[][] = isInProject ? [
-        [
-            { to: `/projects/${projectId}`, icon: LayoutDashboard, label: 'Project Home' },
-            { to: `/projects/${projectId}?tab=intelligence`, icon: Sparkles, label: 'Intelligence' },
-            { to: `/projects/${projectId}/team`, icon: User, label: 'Team' },
-        ]
-    ] : []
-
-    const combinedSections = [...projectSections, ...sidebarSections]
+    const combinedSections = [...sidebarSections]
 
     return (
         <div className="cr-shell">
@@ -178,14 +168,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                         to={item.to}
                                         end={item.to.endsWith(projectId || '')}
                                         className={({ isActive }) => {
-                                            const isProjectHomeLink = item.label === 'Project Home'
-                                            const isIntelligenceLink = item.label === 'Intelligence'
-                                            const linkActive = isIntelligenceLink
-                                                ? isActive && activeProjectTab === 'intelligence'
-                                                : isProjectHomeLink
-                                                    ? isActive && activeProjectTab !== 'intelligence'
-                                                    : isActive
-                                            return `cr-sidebar-link ${linkActive ? 'cr-sidebar-link--active' : ''}`
+                                            return `cr-sidebar-link ${isActive ? 'cr-sidebar-link--active' : ''}`
                                         }}
                                         title={item.label}
                                     >
