@@ -6,14 +6,9 @@ import {
   inviteMember, cancelInvitation, removeMember, updateMemberRole,
   clearCurrentProject, clearError,
 } from '../store/slices/projectsSlice'
-import { projectsApi, documentsApi, webhookApi, DocumentVersion, WebhookRun, IntelligenceView } from '../services/api'
+import { projectsApi, documentsApi, webhookApi, DocumentVersion, WebhookRun } from '../services/api'
 import DashboardLayout from '../components/DashboardLayout'
 import DocumentList from '../components/DocumentList'
-import CodeSearchPanel from '../components/CodeSearchPanel'
-import DependencyGraphViewer from '../components/DependencyGraphViewer'
-import CallGraphViewer from '../components/CallGraphViewer'
-import ArchitectureGraphViewer from '../components/ArchitectureGraphViewer'
-import IntelligenceStatusBadge from '../components/IntelligenceStatusBadge'
 import { Github, Users, Users2, Clock, Shield, Trash2, ChevronRight, Eye, EyeOff, Tag, GitBranch, FileText, Edit3, History, Sparkles, CheckCircle2, AlertCircle, X, Loader2 } from 'lucide-react'
 import { useIntelligenceViewResolver } from '../hooks/useIntelligenceViewResolver'
 
@@ -66,14 +61,8 @@ const ProjectDetail = () => {
 
   // Intelligence state
   const [analysisLoading, setAnalysisLoading] = useState(false)
-  const [latestCommitHash, setLatestCommitHash] = useState('')
-  const [publishedIntelligenceView, setPublishedIntelligenceView] = useState<IntelligenceView | null>(null)
   const {
     loading: resolverLoading,
-    error: resolverError,
-    state: resolverState,
-    activeView,
-    commitHash: resolvedCommitHash,
   } = useIntelligenceViewResolver(currentProject?.id)
 
 
@@ -110,9 +99,7 @@ const ProjectDetail = () => {
   }, [currentProject])
   useEffect(() => {
     setAnalysisLoading(resolverLoading)
-    setPublishedIntelligenceView(activeView)
-    setLatestCommitHash(resolvedCommitHash)
-  }, [resolverLoading, activeView, resolvedCommitHash])
+  }, [resolverLoading])
   useEffect(() => { dispatch(clearError()) }, [dispatch])
 
   // Load doc versions when versioning tab is active
@@ -361,74 +348,8 @@ const ProjectDetail = () => {
             </div>
           )}
 
-          {/* ── Intelligence ── */}
-          {activeTab === 'intelligence' && (
-            <div className="cr-stack" style={{ gap: 24 }}>
-              {analysisLoading ? (
-                <div className="flex justify-center p-12">
-                  <Loader2 className="animate-spin text-blue-500" size={32} />
-                </div>
-              ) : !latestCommitHash ? (
-                <div className="cr-doc-empty">{resolverError || 'No analyzed commit found for this project yet.'}</div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="cr-analysis-card intel-panel border-l-4 border-l-blue-500">
-                    <div className="cr-analysis-card-header intel-panel-header">
-                      <div className="intel-panel-title-wrap">
-                        <h4>System Intelligence Active</h4>
-                        <span className="intel-panel-subtitle">
-                          {resolverState.replace('_', ' ')} for {publishedIntelligenceView?.refName || 'this project'}
-                        </span>
-                      </div>
-                        <span className="intel-chip">{latestCommitHash.substring(0, 7)}</span>
-                      <IntelligenceStatusBadge state={resolverState as any} />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <CodeSearchPanel projectId={currentProject.id} commitHash={latestCommitHash} />
-                    <div className="cr-analysis-card intel-panel">
-                      <div className="cr-analysis-card-header intel-panel-header">
-                        <div className="intel-panel-title-wrap">
-                          <h4>Dependency Graph</h4>
-                          <span className="intel-panel-subtitle">Module-level dependencies and cycle detection</span>
-                        </div>
-                      </div>
-                      <div className="intel-panel-body">
-                        <DependencyGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6">
-                    <div className="cr-analysis-card intel-panel">
-                      <div className="cr-analysis-card-header intel-panel-header">
-                        <div className="intel-panel-title-wrap">
-                          <h4>Call Graph</h4>
-                          <span className="intel-panel-subtitle">Controller to service request flow</span>
-                        </div>
-                      </div>
-                      <div className="intel-panel-body">
-                        <CallGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
-                      </div>
-                    </div>
-
-                    <div className="cr-analysis-card intel-panel">
-                      <div className="cr-analysis-card-header intel-panel-header">
-                        <div className="intel-panel-title-wrap">
-                          <h4>Architecture Graph</h4>
-                          <span className="intel-panel-subtitle">Repository-level knowledge graph</span>
-                        </div>
-                      </div>
-                      <div className="intel-panel-body">
-                        <ArchitectureGraphViewer projectId={currentProject.id} commitHash={latestCommitHash} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {/* ── Intelligence (navigates to dedicated portal) ── */}
+          {activeTab === 'intelligence' && (() => { navigate(`/projects/${id}/intelligence`); return null })()}
 
           {/* Search tab removed - search is inside Intelligence */}
 

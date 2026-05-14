@@ -21,7 +21,14 @@ import DriftAnalysis from './pages/DriftAnalysis'
 import ProjectTeam from './pages/ProjectTeam'
 import Profile from './pages/Profile'
 import Repositories from './pages/Repositories'
-import DeveloperIntelligencePortal from './pages/DeveloperIntelligencePortal'
+import IntelligenceShell from './pages/Intelligence/IntelligenceShell'
+import IntelligenceOverview from './pages/Intelligence/IntelligenceOverview'
+import IntelligenceArchitecture from './pages/Intelligence/IntelligenceArchitecture'
+import IntelligenceDependencies from './pages/Intelligence/IntelligenceDependencies'
+import IntelligenceApis from './pages/Intelligence/IntelligenceApis'
+import IntelligenceCallFlow from './pages/Intelligence/IntelligenceCallFlow'
+import IntelligenceChanges from './pages/Intelligence/IntelligenceChanges'
+import IntelligenceDocs from './pages/Intelligence/IntelligenceDocs'
 import LandingPage from './pages/LandingPage/LandingPage'
 import Signup from './pages/Signup'
 import VerifyOTP from './pages/VerifyOTP'
@@ -72,14 +79,33 @@ function App() {
           path="/projects/:id/team"
           element={<ProtectedRoute><ProjectTeam /></ProtectedRoute>}
         />
+        {/* Intelligence Portal — full 7-section experience */}
         <Route
           path="/intelligence"
-          element={<ProtectedRoute><DeveloperIntelligencePortal /></ProtectedRoute>}
-        />
+          element={<ProtectedRoute><IntelligenceShell /></ProtectedRoute>}
+        >
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<IntelligenceOverview />} />
+          <Route path="architecture" element={<IntelligenceArchitecture />} />
+          <Route path="dependencies" element={<IntelligenceDependencies />} />
+          <Route path="apis" element={<IntelligenceApis />} />
+          <Route path="callflow" element={<IntelligenceCallFlow />} />
+          <Route path="changes" element={<IntelligenceChanges />} />
+          <Route path="docs" element={<IntelligenceDocs />} />
+        </Route>
         <Route
           path="/projects/:id/intelligence"
-          element={<ProtectedRoute><DeveloperIntelligencePortal /></ProtectedRoute>}
-        />
+          element={<ProtectedRoute><IntelligenceShell /></ProtectedRoute>}
+        >
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<IntelligenceOverview />} />
+          <Route path="architecture" element={<IntelligenceArchitecture />} />
+          <Route path="dependencies" element={<IntelligenceDependencies />} />
+          <Route path="apis" element={<IntelligenceApis />} />
+          <Route path="callflow" element={<IntelligenceCallFlow />} />
+          <Route path="changes" element={<IntelligenceChanges />} />
+          <Route path="docs" element={<IntelligenceDocs />} />
+        </Route>
         <Route
           path="/projects/:id/docs/:commit"
           element={<ProtectedRoute><DocumentViewerLayout /></ProtectedRoute>}

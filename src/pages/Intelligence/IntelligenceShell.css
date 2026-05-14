@@ -1,0 +1,349 @@
+/* ═══════════════════════════════════════════════════════
+   Intelligence Shell — Layout & Sidebar
+═══════════════════════════════════════════════════════ */
+
+.intel-shell {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    background: #f8fafc;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ── Sidebar ── */
+.intel-sidebar {
+    width: 224px;
+    min-width: 224px;
+    height: 100vh;
+    background: #0f172a;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow-y: auto;
+    border-right: 1px solid rgba(255,255,255,0.06);
+}
+
+.intel-sidebar-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 16px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 500;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.15s;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.intel-sidebar-back:hover { color: #94a3b8; }
+
+.intel-sidebar-project {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.intel-sidebar-project-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.intel-sidebar-project-info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.intel-sidebar-project-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f1f5f9;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.intel-sidebar-commit {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #475569;
+    margin-top: 2px;
+}
+
+.intel-sidebar-view-selector {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.intel-sidebar-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #475569;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.intel-sidebar-select {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: #94a3b8;
+    font-size: 12px;
+    outline: none;
+}
+
+.intel-sidebar-status-row {
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.intel-sidebar-status {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.intel-sidebar-nav {
+    padding: 12px 8px;
+    flex: 1;
+}
+
+.intel-sidebar-nav-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #334155;
+    padding: 0 8px;
+    margin-bottom: 4px;
+}
+
+.intel-sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+    margin-bottom: 1px;
+}
+
+.intel-sidebar-nav-item:hover {
+    background: rgba(255,255,255,0.05);
+    color: #94a3b8;
+}
+
+.intel-sidebar-nav-item--active {
+    background: rgba(59,130,246,0.15);
+    color: #60a5fa;
+}
+
+.intel-sidebar-nav-item--active .intel-sidebar-nav-icon {
+    color: #3b82f6;
+}
+
+.intel-sidebar-nav-icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.intel-sidebar-nav-label-text { flex: 1; }
+
+.intel-sidebar-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+}
+
+.intel-sidebar-badge--red { background: rgba(239,68,68,0.2); color: #ef4444; }
+.intel-sidebar-badge--yellow { background: rgba(234,179,8,0.2); color: #eab308; }
+.intel-sidebar-badge--blue { background: rgba(59,130,246,0.2); color: #60a5fa; }
+
+/* ── Main Content ── */
+.intel-shell-content {
+    flex: 1;
+    overflow-y: auto;
+    height: 100vh;
+    background: #f8fafc;
+}
+
+.intel-shell-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 16px;
+    color: #64748b;
+}
+
+.intel-shell-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: intel-spin 0.7s linear infinite;
+}
+
+@keyframes intel-spin { to { transform: rotate(360deg); } }
+
+/* ── No project state ── */
+.intel-shell-no-project {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    gap: 12px;
+    color: #64748b;
+    font-size: 15px;
+}
+.intel-shell-btn-primary {
+    margin-top: 8px;
+    padding: 10px 24px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+}
+.intel-shell-btn-primary:hover { background: #2563eb; }
+
+/* ── Section page shared styles ── */
+.intel-page {
+    padding: 32px 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.intel-page-header {
+    margin-bottom: 28px;
+}
+
+.intel-page-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 4px;
+}
+
+.intel-page-title-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.intel-page-subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin: 0;
+}
+
+.intel-section-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.intel-section-card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.intel-section-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0;
+}
+
+.intel-section-card-sub {
+    font-size: 12px;
+    color: #94a3b8;
+    margin: 2px 0 0;
+}
+
+.intel-section-card-body { padding: 20px; }
+.intel-section-card-body--flush { padding: 0; }
+
+.intel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    color: #94a3b8;
+    gap: 10px;
+    text-align: center;
+}
+
+.intel-loading-skeleton {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: intel-shimmer 1.2s infinite;
+    border-radius: 6px;
+}
+
+@keyframes intel-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.intel-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.intel-chip--red { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+.intel-chip--yellow { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+.intel-chip--green { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+.intel-chip--blue { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }

@@ -41,10 +41,6 @@ vi.mock('../services/api', () => ({
 
 vi.mock('../components/DashboardLayout', () => ({ default: ({ children }: any) => <div>{children}</div> }))
 vi.mock('../components/DocumentList', () => ({ default: () => <div>document-list</div> }))
-vi.mock('../components/CodeSearchPanel', () => ({ default: () => <div>code-search</div> }))
-vi.mock('../components/DependencyGraphViewer', () => ({ default: () => <div>dep-graph</div> }))
-vi.mock('../components/CallGraphViewer', () => ({ default: () => <div>call-graph</div> }))
-vi.mock('../components/ArchitectureGraphViewer', () => ({ default: () => <div>arch-graph</div> }))
 
 describe('ProjectDetail intelligence resolver coverage', () => {
   const mockState = {
