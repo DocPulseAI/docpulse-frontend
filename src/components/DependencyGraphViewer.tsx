@@ -13,7 +13,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import dagre from 'dagre'
 import { intelligenceApi } from '../services/api'
-import { GitFork, Search, X, Maximize2, Minimize2 } from 'lucide-react'
+import { GitFork, Search, X, ChevronUp, ChevronDown, Maximize2, Minimize2 } from 'lucide-react'
 
 interface DependencyGraphViewerProps {
     projectId: string
@@ -101,6 +101,8 @@ const DependencyGraphViewer: React.FC<DependencyGraphViewerProps> = ({ projectId
             document.exitFullscreen()
         }
     }
+    const [panelCollapsed, setPanelCollapsed] = useState(false)
+
     useEffect(() => {
         const fetchDependencies = async () => {
             if (!projectId || !commitHash) return

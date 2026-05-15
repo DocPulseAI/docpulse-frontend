@@ -116,6 +116,14 @@ const CallGraphViewer: React.FC<CallGraphViewerProps> = ({ projectId, commitHash
                 const graphNodes = Array.isArray(data?.nodes) ? data.nodes : []
                 const graphEdges = Array.isArray(data?.edges) ? data.edges : []
 
+                const typeMapping: Record<string, string> = {
+                    api: 'API',
+                    controller: 'Controller',
+                    service: 'Service',
+                    entity: 'Entity',
+                    module: 'Module'
+                }
+
                 const initialNodes: Node[] = graphNodes.map((nodeId: string) => {
                     return {
                         id: String(nodeId),
