@@ -125,18 +125,31 @@ const CallGraphViewer: React.FC<CallGraphViewerProps> = ({ projectId, commitHash
                 }
 
                 const initialNodes: Node[] = graphNodes.map((nodeId: string) => {
+                    const label = String(nodeId);
+                    let type = 'Module';
+                    
+                    if (label.includes('/api/') || label.match(/^(GET|POST|PUT|DELETE|PATCH) /)) {
+                        type = 'API';
+                    } else if (label.toLowerCase().includes('controller')) {
+                        type = 'Controller';
+                    } else if (label.toLowerCase().includes('service')) {
+                        type = 'Service';
+                    } else if (label.toLowerCase().includes('entity') || label.toLowerCase().includes('repository')) {
+                        type = 'Entity';
+                    }
+
                     return {
-                        id: String(nodeId),
+                        id: label,
                         type: 'custom',
                         data: { 
-                            label: String(nodeId), 
-                            fullPath: String(nodeId), 
-                            type: 'Module', // Calls often don't have types from backend
-                            description: String(nodeId)
+                            label, 
+                            fullPath: label, 
+                            type,
+                            description: label
                         },
                         position: { x: 0, y: 0 },
-                    }
-                })
+                    };
+                });
 
                 const rawEdges: Edge[] = graphEdges.map((edge: any, index: number) => ({
                     id: `call-edge-${index}`,

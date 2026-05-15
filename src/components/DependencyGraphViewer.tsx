@@ -156,20 +156,33 @@ const DependencyGraphViewer: React.FC<DependencyGraphViewerProps> = ({ projectId
                 }
 
                 const initialNodes: Node[] = modules.map((module: string) => {
+                    const label = module.split('/').pop() || module;
+                    let type = 'Module';
+                    
+                    if (module.includes('/api/') || module.match(/^(GET|POST|PUT|DELETE|PATCH) /)) {
+                        type = 'API';
+                    } else if (module.toLowerCase().includes('controller')) {
+                        type = 'Controller';
+                    } else if (module.toLowerCase().includes('service')) {
+                        type = 'Service';
+                    } else if (module.toLowerCase().includes('entity') || module.toLowerCase().includes('repository')) {
+                        type = 'Entity';
+                    }
+
                     return {
                         id: String(module),
                         type: 'custom',
                         data: { 
-                            label: module.split('/').pop() || module, 
+                            label, 
                             fullPath: String(module), 
-                            type: 'Module',
+                            type,
                             description: String(module),
                             isCyclic: circularSet.has(module),
                             depthLevel: depthMap[module] ?? 0
                         },
                         position: { x: 0, y: 0 },
-                    }
-                })
+                    };
+                });
 
                 const rawEdges: Edge[] = dependencies.map((edge: any, index: number) => ({
                     id: `dep-edge-${index}`,
