@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
+import { Server, Cpu, FileText, Scale, Sparkles } from 'lucide-react'
 import { API_BASE_URL } from '../services/api'
 import './ServerWaker.css'
 
@@ -9,7 +10,6 @@ interface ServiceState {
   name: string
   label: string
   status: ServiceStatus
-  icon: string
 }
 
 export default function ServerWaker() {
@@ -20,11 +20,11 @@ export default function ServerWaker() {
   const [attempts, setAttempts] = useState(0)
 
   const [services, setServices] = useState<Record<string, ServiceState>>({
-    backend: { name: 'backend', label: 'Backend API Gateway', status: 'checking', icon: '⚡' },
-    epic1: { name: 'epic1', label: 'Epic-1: Code Change Detector', status: 'checking', icon: '🔍' },
-    epic2: { name: 'epic2', label: 'Epic-2: Document Generator', status: 'checking', icon: '✍️' },
-    epic3: { name: 'epic3', label: 'Epic-3: Drift Detector', status: 'checking', icon: '⚖️' },
-    epic4: { name: 'epic4', label: 'Epic-4: Change Summarizer', status: 'checking', icon: '📝' },
+    backend: { name: 'backend', label: 'Backend API Gateway', status: 'checking' },
+    epic1: { name: 'epic1', label: 'Epic-1: Code Change Detector', status: 'checking' },
+    epic2: { name: 'epic2', label: 'Epic-2: Document Generator', status: 'checking' },
+    epic3: { name: 'epic3', label: 'Epic-3: Drift Detector', status: 'checking' },
+    epic4: { name: 'epic4', label: 'Epic-4: Change Summarizer', status: 'checking' },
   })
 
   // Phase 1: Check backend health
@@ -131,6 +131,24 @@ export default function ServerWaker() {
     }
   }
 
+  const getServiceIcon = (name: string) => {
+    const props = { size: 16, className: 'sw-service-icon-lucide' }
+    switch (name) {
+      case 'backend':
+        return <Server {...props} />
+      case 'epic1':
+        return <Cpu {...props} />
+      case 'epic2':
+        return <FileText {...props} />
+      case 'epic3':
+        return <Scale {...props} />
+      case 'epic4':
+        return <Sparkles {...props} />
+      default:
+        return null
+    }
+  }
+
   // Determine overall status text
   const getOverallStatusText = () => {
     if (wakeStatus === 'checking_backend') {
@@ -187,7 +205,7 @@ export default function ServerWaker() {
             {Object.values(services).map((service) => (
               <div key={service.name} className={`sw-service-item status-${service.status}`}>
                 <div className="sw-service-info">
-                  <span className="sw-service-icon">{service.icon}</span>
+                  {getServiceIcon(service.name)}
                   <span className="sw-service-name">{service.label}</span>
                 </div>
                 {getStatusBadge(service.status)}

@@ -180,8 +180,14 @@
   min-width: 0;
 }
 
-.sw-service-icon {
-  font-size: 14px;
+.sw-service-icon-lucide {
+  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+  transition: color 0.3s;
+}
+
+.sw-service-item.status-ok .sw-service-icon-lucide {
+  color: #10b981;
 }
 
 .sw-service-name {
