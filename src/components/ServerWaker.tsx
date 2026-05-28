@@ -51,9 +51,18 @@ export default function ServerWaker() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [visible, setVisible] = useState(true)
   const [services, setServices] = useState<ServiceEntry[]>(SERVICE_HEALTH_URLS)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const initialRunRef = useRef(true)
+  const mountedRef = useRef(true)
 
   const allReady = services.every((s) => s.status === 'ok')
+
+  // Keep track of mounted status
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   // Ping all services directly from the browser in parallel
   useEffect(() => {
@@ -80,16 +89,21 @@ export default function ServerWaker() {
           }
         })
       )
-      setServices(results)
+      if (mountedRef.current) {
+        setServices(results)
+      }
     }
 
-    pingAll()
-    intervalRef.current = setInterval(pingAll, 4000)
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
+    if (initialRunRef.current) {
+      initialRunRef.current = false
+      pingAll()
+      return
     }
-  }, [allReady])
+
+    const timerId = setTimeout(pingAll, 8000) // gentle 8-second interval to avoid rate limiting (429)
+
+    return () => clearTimeout(timerId)
+  }, [services, allReady])
 
   // Auto-dismiss after all services are ready
   useEffect(() => {
