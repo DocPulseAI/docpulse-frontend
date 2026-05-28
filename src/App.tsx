@@ -29,6 +29,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import ProtectedRoute from './components/ProtectedRoute'
 import CommandPalette from './components/CommandPalette'
+import ServerWaker from './components/ServerWaker'
 
 function App() {
   const { isAuthenticated } = useAppSelector((state) => state.auth)
@@ -36,6 +37,7 @@ function App() {
   return (
     <div className="app">
       {isAuthenticated && <CommandPalette />}
+      <ServerWaker />
 
       <Routes>
         {/* Public Routes */}
