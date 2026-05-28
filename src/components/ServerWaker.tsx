@@ -64,7 +64,16 @@ export default function ServerWaker() {
         services.map(async (service) => {
           if (service.status === 'ok') return service // already awake, skip
           try {
-            await axios.get(service.healthUrl, { timeout: 6000 })
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 6000)
+
+            await fetch(service.healthUrl, {
+              mode: 'no-cors',
+              signal: controller.signal,
+              cache: 'no-store',
+            })
+
+            clearTimeout(timeoutId)
             return { ...service, status: 'ok' as ServiceStatus }
           } catch {
             return { ...service, status: 'waking_up' as ServiceStatus }
