@@ -1,115 +1,99 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import { Server, Cpu, FileText, Scale, Sparkles } from 'lucide-react'
 import { API_BASE_URL } from '../services/api'
 import './ServerWaker.css'
 
-type ServiceStatus = 'checking' | 'waking_up' | 'ok' | 'error' | 'not_configured'
+type ServiceStatus = 'checking' | 'waking_up' | 'ok' | 'error'
 
-interface ServiceState {
+interface ServiceEntry {
   name: string
   label: string
+  healthUrl: string
   status: ServiceStatus
 }
 
+// All service health endpoints — frontend pings each one directly in parallel
+const SERVICE_HEALTH_URLS: ServiceEntry[] = [
+  {
+    name: 'backend',
+    label: 'Backend API Gateway',
+    healthUrl: `${API_BASE_URL}/health`,
+    status: 'checking',
+  },
+  {
+    name: 'epic1',
+    label: 'Epic-1: Code Change Detector',
+    healthUrl: 'https://code-intelligence.onrender.com/health',
+    status: 'checking',
+  },
+  {
+    name: 'epic2',
+    label: 'Epic-2: Document Generator',
+    healthUrl: 'https://documents-generator-32mg.onrender.com/health',
+    status: 'checking',
+  },
+  {
+    name: 'epic3',
+    label: 'Epic-3: Drift Detector',
+    healthUrl: 'https://drift-detection.onrender.com/health',
+    status: 'checking',
+  },
+  {
+    name: 'epic4',
+    label: 'Epic-4: Change Summarizer',
+    healthUrl: 'https://summary-codebase.onrender.com/health',
+    status: 'checking',
+  },
+]
+
 export default function ServerWaker() {
-  const [backendAwake, setBackendAwake] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [visible, setVisible] = useState(true)
-  const [wakeStatus, setWakeStatus] = useState<'checking_backend' | 'waking_services' | 'ready' | 'hidden'>('checking_backend')
-  const [attempts, setAttempts] = useState(0)
+  const [services, setServices] = useState<ServiceEntry[]>(SERVICE_HEALTH_URLS)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const [services, setServices] = useState<Record<string, ServiceState>>({
-    backend: { name: 'backend', label: 'Backend API Gateway', status: 'checking' },
-    epic1: { name: 'epic1', label: 'Epic-1: Code Change Detector', status: 'checking' },
-    epic2: { name: 'epic2', label: 'Epic-2: Document Generator', status: 'checking' },
-    epic3: { name: 'epic3', label: 'Epic-3: Drift Detector', status: 'checking' },
-    epic4: { name: 'epic4', label: 'Epic-4: Change Summarizer', status: 'checking' },
-  })
+  const allReady = services.every((s) => s.status === 'ok')
 
-  // Phase 1: Check backend health
+  // Ping all services directly from the browser in parallel
   useEffect(() => {
-    if (wakeStatus !== 'checking_backend') return
+    if (allReady) return
 
-    let intervalId: NodeJS.Timeout
-    const checkBackend = async () => {
-      try {
-        setAttempts((prev) => prev + 1)
-        const response = await axios.get(`${API_BASE_URL}/health`, { timeout: 5000 })
-        if (response.status === 200) {
-          setBackendAwake(true)
-          setServices((prev) => ({
-            ...prev,
-            backend: { ...prev.backend, status: 'ok' },
-          }))
-          setWakeStatus('waking_services')
-        }
-      } catch (error) {
-        // Backend still asleep
-        setServices((prev) => ({
-          ...prev,
-          backend: { ...prev.backend, status: 'waking_up' },
-        }))
-      }
-    }
-
-    checkBackend()
-    intervalId = setInterval(checkBackend, 3000)
-
-    return () => clearInterval(intervalId)
-  }, [wakeStatus])
-
-  // Phase 2: Wake downstream services
-  useEffect(() => {
-    if (wakeStatus !== 'waking_services') return
-
-    let intervalId: NodeJS.Timeout
-    const wakeServices = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/api/wake`, { timeout: 9000 })
-        if (response.data && response.data.services) {
-          const apiServices = response.data.services
-          setServices((prev) => {
-            const updated = { ...prev }
-            Object.keys(apiServices).forEach((key) => {
-              if (updated[key]) {
-                updated[key] = {
-                  ...updated[key],
-                  status: apiServices[key].status as ServiceStatus,
-                }
-              }
-            })
-            return updated
-          })
-
-          if (response.data.status === 'ready') {
-            setWakeStatus('ready')
+    const pingAll = async () => {
+      const results = await Promise.all(
+        services.map(async (service) => {
+          if (service.status === 'ok') return service // already awake, skip
+          try {
+            await axios.get(service.healthUrl, { timeout: 6000 })
+            return { ...service, status: 'ok' as ServiceStatus }
+          } catch {
+            return { ...service, status: 'waking_up' as ServiceStatus }
           }
-        }
-      } catch (error) {
-        console.error('Error waking downstream services:', error)
-      }
+        })
+      )
+      setServices(results)
     }
 
-    wakeServices()
-    intervalId = setInterval(wakeServices, 4000)
+    pingAll()
+    intervalRef.current = setInterval(pingAll, 4000)
 
-    return () => clearInterval(intervalId)
-  }, [wakeStatus])
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [allReady])
 
-  // Phase 3: Transition to hidden when ready
+  // Auto-dismiss after all services are ready
   useEffect(() => {
-    if (wakeStatus !== 'ready') return
+    if (!allReady) return
 
     const timeoutId = setTimeout(() => {
       setVisible(false)
-      setWakeStatus('hidden')
     }, 4000)
 
     return () => clearTimeout(timeoutId)
-  }, [wakeStatus])
+  }, [allReady])
 
-  if (wakeStatus === 'hidden' || !visible) return null
+  if (!visible) return null
 
   const getStatusBadge = (status: ServiceStatus) => {
     switch (status) {
@@ -125,9 +109,8 @@ export default function ServerWaker() {
         )
       case 'error':
         return <span className="sw-badge sw-badge-error">Offline</span>
-      case 'not_configured':
       default:
-        return <span className="sw-badge sw-badge-inactive">Ready</span>
+        return null
     }
   }
 
@@ -149,23 +132,20 @@ export default function ServerWaker() {
     }
   }
 
-  // Determine overall status text
+  const onlineCount = services.filter((s) => s.status === 'ok').length
+  const wakePhase = allReady ? 'ready' : onlineCount > 0 ? 'waking_services' : 'checking_backend'
+
   const getOverallStatusText = () => {
-    if (wakeStatus === 'checking_backend') {
-      return `Waking up servers... (Attempt ${attempts})`
-    }
-    if (wakeStatus === 'waking_services') {
-      return 'Spanning Epic pipelines...'
-    }
-    return 'All Systems Operational!'
+    if (allReady) return 'All Systems Operational!'
+    return `Waking services... (${onlineCount}/${services.length})`
   }
 
   return (
-    <div className={`server-waker-container ${isCollapsed ? 'collapsed' : ''} ${wakeStatus}`}>
+    <div className={`server-waker-container ${isCollapsed ? 'collapsed' : ''} ${wakePhase}`}>
       {/* Header */}
       <div className="sw-header" onClick={() => setIsCollapsed(!isCollapsed)}>
         <div className="sw-title-area">
-          <div className={`sw-pulse-dot ${wakeStatus}`} />
+          <div className={`sw-pulse-dot ${wakePhase}`} />
           <span className="sw-title">{getOverallStatusText()}</span>
         </div>
         <div className="sw-controls">
@@ -198,11 +178,11 @@ export default function ServerWaker() {
       {!isCollapsed && (
         <div className="sw-body">
           <p className="sw-description">
-            We are waking up the Render free-tier containers. This takes 30-50s but ensures a fully operational demo.
+            Waking up Render free-tier containers. This takes 30-50s but ensures a fully operational demo.
           </p>
 
           <div className="sw-services-list">
-            {Object.values(services).map((service) => (
+            {services.map((service) => (
               <div key={service.name} className={`sw-service-item status-${service.status}`}>
                 <div className="sw-service-info">
                   {getServiceIcon(service.name)}
