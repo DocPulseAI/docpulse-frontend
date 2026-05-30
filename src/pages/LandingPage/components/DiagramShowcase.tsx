@@ -5,67 +5,11 @@ import {
     Code2, Eye, Copy, Check, ChevronRight, Layers,
     ArrowRight, Maximize2, X
 } from 'lucide-react'
-import mermaid from 'mermaid'
-import { marked } from 'marked'
-
 import { useTheme } from '../../../context/ThemeContext'
+import MarkdownRenderer from '../../../components/MarkdownRenderer'
+import MermaidDiagram from '../../../components/MermaidDiagram'
 
-// ─── Mermaid theme-aware initialization ──────────────────────────────────────
-function initMermaid(isDark: boolean) {
-    mermaid.initialize({
-        startOnLoad: false,
-        theme: isDark ? 'dark' : 'default',
-        themeVariables: isDark ? {
-            darkMode: true,
-            primaryColor: '#60a5ff',
-            primaryTextColor: '#e8edf5',
-            primaryBorderColor: '#262e3a',
-            lineColor: '#505a6a',
-            secondaryColor: '#22c55e',
-            tertiaryColor: '#12161e',
-            noteTextColor: '#e8edf5',
-            noteBkgColor: '#12161e',
-            noteBorderColor: '#262e3a',
-            mainBkg: '#0a0e14',
-            nodeBkg: '#12161e',
-            nodeBorder: '#262e3a',
-            clusterBkg: '#12161e',
-            clusterBorder: '#262e3a',
-            titleColor: '#e8edf5',
-            edgeLabelBackground: '#0a0e14',
-            background: '#0a0e14',
-            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-            fontSize: '13px',
-        } : {
-            darkMode: false,
-            primaryColor: '#4f46e5',
-            primaryTextColor: '#1e293b',
-            primaryBorderColor: '#e2e8f0',
-            lineColor: '#94a3b8',
-            secondaryColor: '#16a34a',
-            tertiaryColor: '#f1f5f9',
-            noteTextColor: '#1e293b',
-            noteBkgColor: '#ffffff',
-            noteBorderColor: '#e2e8f0',
-            mainBkg: '#f8fafc',
-            nodeBkg: '#ffffff',
-            nodeBorder: '#e2e8f0',
-            clusterBkg: '#f1f5f9',
-            clusterBorder: '#e2e8f0',
-            titleColor: '#1e293b',
-            edgeLabelBackground: '#f8fafc',
-            background: '#f8fafc',
-            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-            fontSize: '13px',
-        },
-        flowchart: { curve: 'basis', padding: 20 },
-        er: { fontSize: 11, useMaxWidth: true },
-        sequence: { useMaxWidth: true, actorFontSize: 12, messageFontSize: 12 },
-    })
-}
 
-// Initialize with default theme
-initMermaid(document.documentElement.getAttribute('data-theme') !== 'light')
 
 // ─── Demo Project Files ───────────────────────────────────────────────────────
 // Using a fictional "ShopStream" e-commerce project for maximum relevance to SWEs
@@ -156,7 +100,7 @@ const demoFiles: DemoFile[] = [
     },
     {
         id: 'architecture',
-        name: 'arch.mmd',
+        name: 'system.mmd',
         type: 'mermaid',
         icon: <Network size={14} />,
         iconColor: 'var(--accent-blue)',
@@ -256,29 +200,7 @@ const demoFiles: DemoFile[] = [
         Web-->>Customer: Show Retry Option
     end`,
     },
-    {
-        id: 'systems',
-        name: 'systems.mmd',
-        type: 'mermaid',
-        icon: <Layers size={14} />,
-        iconColor: 'var(--accent-purple)',
-        label: 'Systems',
-        code: `graph LR
-    REPO["Git Repository"] --> CI["CI Pipeline"]
-    CI --> ANALYZER["Code Analyzer"]
-    ANALYZER --> ER["ER Diagram"]
-    ANALYZER --> ARCH["Architecture Diagram"]
-    ANALYZER --> SEQ["Sequence Diagram"]
-    ANALYZER --> ADR["ADR Draft"]
-    ANALYZER --> README["README.md"]
-    ANALYZER --> API["API Documentation"]
-    ER --> PORTAL["Project Docs Portal"]
-    ARCH --> PORTAL
-    SEQ --> PORTAL
-    ADR --> PORTAL
-    README --> PORTAL
-    API --> PORTAL`,
-    },
+
     {
         id: 'adr',
         name: 'ADR-001.md',
@@ -308,7 +230,7 @@ Generate and update project docs automatically in CI for every push:
     },
     {
         id: 'readme',
-        name: 'README.md',
+        name: 'README.generated.md',
         type: 'markdown',
         icon: <BookOpen size={14} />,
         iconColor: 'var(--accent-cyan)',
@@ -666,104 +588,7 @@ function CodeEditor({ code, type }: { code: string; type: 'mermaid' | 'markdown'
     )
 }
 
-// ─── Mermaid Renderer ─────────────────────────────────────────────────────────
-function MermaidPreview({ code, fileId }: { code: string; fileId: string }) {
-    const containerRef = useRef<HTMLDivElement>(null)
-    const [error, setError] = useState<string | null>(null)
-    const [loading, setLoading] = useState(true)
-    const { theme } = useTheme()
-    const isDark = theme === 'dark'
 
-    useEffect(() => {
-        let isMounted = true
-        setLoading(true)
-        setError(null)
-
-        // Re-initialize mermaid with current theme
-        initMermaid(isDark)
-
-        const renderDiagram = async () => {
-            try {
-                const id = `mermaid-${fileId}-${Date.now()}`
-                const { svg } = await mermaid.render(id, code)
-                if (isMounted && containerRef.current) {
-                    containerRef.current.innerHTML = svg
-                    // Style the SVG to fill the container
-                    const svgEl = containerRef.current.querySelector('svg')
-                    if (svgEl) {
-                        svgEl.style.maxWidth = '100%'
-                        svgEl.style.height = 'auto'
-                        svgEl.style.maxHeight = '500px'
-                    }
-                    setLoading(false)
-                }
-            } catch (e) {
-                if (isMounted) {
-                    setError(e instanceof Error ? e.message : 'Render failed')
-                    setLoading(false)
-                }
-            }
-        }
-
-        renderDiagram()
-        return () => { isMounted = false }
-    }, [code, fileId, isDark])
-
-    return (
-        <div className="lp-preview-pane">
-            <div className="lp-preview-bar">
-                <Eye size={12} style={{ color: 'var(--text-muted)' }} />
-                <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                    Rendered Preview
-                </span>
-                <span className="lp-live-badge">LIVE</span>
-            </div>
-            <div className="lp-preview-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {loading && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
-                        <div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid var(--accent-blue)', borderTopColor: 'transparent', animation: 'lp-spin 1s linear infinite' }} />
-                        Rendering diagram...
-                    </div>
-                )}
-                {error && (
-                    <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', padding: 10, borderRadius: 4, color: 'var(--accent-red)', background: 'rgba(248,81,73,0.06)' }}>
-                        Error: {error}
-                    </div>
-                )}
-                <div ref={containerRef} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
-            </div>
-        </div>
-    )
-}
-
-// ─── Markdown Preview ─────────────────────────────────────────────────────────
-function MarkdownPreview({ code }: { code: string }) {
-    const [html, setHtml] = useState('')
-
-    useEffect(() => {
-        const render = async () => {
-            const result = await marked(code, { gfm: true, breaks: true })
-            setHtml(result)
-        }
-        render()
-    }, [code])
-
-    return (
-        <div className="lp-preview-pane">
-            <div className="lp-preview-bar">
-                <Eye size={12} style={{ color: 'var(--text-muted)' }} />
-                <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                    Rendered Preview
-                </span>
-                <span className="lp-live-badge">LIVE</span>
-            </div>
-            <div
-                className="lp-preview-content lp-md-preview"
-                dangerouslySetInnerHTML={{ __html: html }}
-            />
-        </div>
-    )
-}
 
 // ─── Fullscreen Modal ─────────────────────────────────────────────────────────
 function FullscreenModal({ file, onClose }: { file: DemoFile; onClose: () => void }) {
@@ -803,11 +628,11 @@ function FullscreenModal({ file, onClose }: { file: DemoFile; onClose: () => voi
                     <div style={{ overflow: 'auto', borderRight: '1px solid var(--border-muted)' }}>
                         <CodeEditor code={file.code} type={file.type} />
                     </div>
-                    <div style={{ overflow: 'auto' }}>
+                    <div style={{ overflow: 'auto', padding: 16 }}>
                         {file.type === 'mermaid' ? (
-                            <MermaidPreview code={file.code} fileId={`modal-${file.id}`} />
+                            <MermaidDiagram code={file.code} title={file.label} />
                         ) : (
-                            <MarkdownPreview code={file.code} />
+                            <MarkdownRenderer content={file.code} />
                         )}
                     </div>
                 </div>
@@ -887,9 +712,31 @@ export default function DiagramShowcase() {
                         <div className="lp-diagram-pane">
                             <CodeEditor code={currentFile.code} type={currentFile.type} />
                             {currentFile.type === 'mermaid' ? (
-                                <MermaidPreview code={currentFile.code} fileId={currentFile.id} />
+                                <div className="lp-preview-pane">
+                                    <div className="lp-preview-bar">
+                                        <Eye size={12} style={{ color: 'var(--text-muted)' }} />
+                                        <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                                            Rendered Preview
+                                        </span>
+                                        <span className="lp-live-badge">LIVE</span>
+                                    </div>
+                                    <div className="lp-preview-content" style={{ padding: 0, overflow: 'auto' }}>
+                                        <MermaidDiagram code={currentFile.code} title={currentFile.label} />
+                                    </div>
+                                </div>
                             ) : (
-                                <MarkdownPreview code={currentFile.code} />
+                                <div className="lp-preview-pane">
+                                    <div className="lp-preview-bar">
+                                        <Eye size={12} style={{ color: 'var(--text-muted)' }} />
+                                        <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                                            Rendered Preview
+                                        </span>
+                                        <span className="lp-live-badge">LIVE</span>
+                                    </div>
+                                    <div className="lp-preview-content" style={{ padding: 16, overflow: 'auto' }}>
+                                        <MarkdownRenderer content={currentFile.code} />
+                                    </div>
+                                </div>
                             )}
                         </div>
 

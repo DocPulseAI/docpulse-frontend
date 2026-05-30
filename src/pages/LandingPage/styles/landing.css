@@ -1617,3 +1617,18 @@ html {
     transform: rotate(360deg);
   }
 }
+
+/* ── Intelligence Portal Showcase ── */
+.lp-intelligence-showcase-panel {
+  grid-template-columns: 300px 1fr;
+}
+
+@media (max-width: 991px) {
+  .lp-intelligence-showcase-panel {
+    grid-template-columns: 1fr !important;
+  }
+  .lp-intelligence-canvas-wrap {
+    height: 380px !important;
+  }
+}
+

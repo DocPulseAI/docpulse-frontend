@@ -9,6 +9,7 @@ import Logo from '../../../components/Logo'
 
 const navLinks = [
     { label: 'Pipeline', href: '#pipeline' },
+    { label: 'Intelligence', href: '#intelligence-portal' },
     { label: 'Dashboard', href: '#dashboard' },
     { label: 'Team', href: '#team-collaboration' },
     { label: 'Diagrams', href: '#diagrams' },

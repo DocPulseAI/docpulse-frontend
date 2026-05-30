@@ -117,7 +117,7 @@ const mermaidDiagramTitle = (diagram: string, index: number, total: number): str
     return total > 1 ? `${label} ${index + 1}` : label
 }
 
-function MermaidDiagram({ code }: { code: string }) {
+function MermaidDiagram({ code, title: overrideTitle }: { code: string; title?: string }) {
     const { theme } = useTheme()
     const isDark = theme === 'dark'
     const [svg, setSvg] = useState('')
@@ -129,9 +129,9 @@ function MermaidDiagram({ code }: { code: string }) {
     const diagramId = useMemo(() => `mmd-${Math.floor(Math.random() * 1000000)}`, [])
 
     const firstLine = code.split('\n').map(l => l.trim()).find(Boolean)?.toLowerCase() || ''
-    const title = firstLine.startsWith('erdiagram') ? 'ER Diagram'
+    const title = overrideTitle || (firstLine.startsWith('erdiagram') ? 'ER Diagram'
         : firstLine.startsWith('sequencediagram') ? 'Sequence Diagram'
-            : 'Architecture Diagram'
+            : 'Architecture Diagram')
 
     useEffect(() => {
         let asyncCancelled = false
@@ -199,7 +199,7 @@ function MermaidDiagram({ code }: { code: string }) {
     )
 }
 
-export function MermaidBlock({ code }: { code: string }) {
+export function MermaidBlock({ code, title }: { code: string; title?: string }) {
     const splitDiagrams = useMemo(() => splitMermaidDiagrams(code), [code])
     const diagrams = useMemo(() => dedupeMermaidDiagrams(splitDiagrams), [splitDiagrams])
     const [activeIndex, setActiveIndex] = useState(0)
@@ -209,7 +209,7 @@ export function MermaidBlock({ code }: { code: string }) {
     }, [code, diagrams.length])
 
     if (diagrams.length <= 1) {
-        return <MermaidDiagram code={diagrams[0] || code} />
+        return <MermaidDiagram code={diagrams[0] || code} title={title} />
     }
 
     const duplicateCount = Math.max(0, splitDiagrams.length - diagrams.length)
@@ -235,7 +235,7 @@ export function MermaidBlock({ code }: { code: string }) {
                 )}
             </div>
 
-            <MermaidDiagram code={diagrams[safeIndex]} />
+            <MermaidDiagram code={diagrams[safeIndex]} title={title} />
         </div>
     )
 }

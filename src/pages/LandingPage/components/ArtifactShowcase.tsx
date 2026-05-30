@@ -28,6 +28,10 @@ const fileTree: FileNode[] = [
         content: `.\n├── README.generated.md\n├── documentation-health.md\n├── tree.txt\n├── api/\n│   ├── api-reference.md\n│   └── api-description.json\n├── architecture/\n│   ├── system.mmd\n│   ├── sequence.mmd\n│   ├── er.mmd\n│   └── architecture.md\n├── adr/\n│   └── ADR-001.md\n├── doc_snapshot.json\n└── summary/\n    ├── summary.md\n    └── summary.json`,
     },
     {
+        name: 'doc_snapshot.json', type: 'file', extension: 'json', updated: '2 min ago',
+        content: `{\n  "schema_version": "1.0",\n  "project": "ShopStream",\n  "commit": "v2.4.1",\n  "stats": {\n    "services": 6,\n    "routes": 42,\n    "models": 8,\n    "health": 94\n  }\n}`
+    },
+    {
         name: 'api', type: 'folder',
         children: [
             {
@@ -48,10 +52,27 @@ const fileTree: FileNode[] = [
                 content: `graph TD\n    A[GitHub Webhook] --> B[CI Orchestrator]\n    B --> C[Code Analyzer]\n    B --> D[Doc Generator]`
             },
             {
+                name: 'sequence.mmd', type: 'file', extension: 'mmd', updated: '4 min ago',
+                content: `sequenceDiagram\n    autonumber\n    Customer->>Web: Checkout\n    Web->>GW: POST /api/checkout\n    GW->>Auth: Validate JWT`
+            },
+            {
+                name: 'er.mmd', type: 'file', extension: 'mmd', updated: '4 min ago',
+                content: `erDiagram\n    USERS ||--o{ ORDERS : places\n    ORDERS ||--|{ ORDER_ITEMS : contains`
+            },
+            {
                 name: 'architecture.md', type: 'file', extension: 'md', updated: '5 min ago',
                 content: `# Architecture Overview\n\n## System Components\n\n### Epic 1: Code Analysis Engine\nParses repository AST and extracts features.`
             },
         ],
+    },
+    {
+        name: 'adr', type: 'folder',
+        children: [
+            {
+                name: 'ADR-001.md', type: 'file', extension: 'md', updated: '5 min ago',
+                content: `# ADR-001: Adopt CI-Generated Living Documentation\n\n## Status\nAccepted\n\n## Context\nDocumentation drift causes onboarding delays and release risk.`
+            }
+        ]
     },
     {
         name: 'summary', type: 'folder',
