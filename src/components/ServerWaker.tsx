@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
-import { Server, Cpu, FileText, Scale, Sparkles } from 'lucide-react'
+import { Server, Cpu, FileText, Scale, Sparkles, Database } from 'lucide-react'
 import { API_BASE_URL } from '../services/api'
 import './ServerWaker.css'
 
@@ -19,6 +19,12 @@ const SERVICE_HEALTH_URLS: ServiceEntry[] = [
     name: 'backend',
     label: 'Backend API Gateway',
     healthUrl: `${API_BASE_URL}/health`,
+    status: 'checking',
+  },
+  {
+    name: 'database',
+    label: 'Database Server',
+    healthUrl: `${API_BASE_URL}/api/wake-db`,
     status: 'checking',
   },
   {
@@ -73,6 +79,18 @@ export default function ServerWaker() {
         services.map(async (service) => {
           if (service.status === 'ok') return service // already awake, skip
           try {
+            if (service.name === 'database') {
+              const response = await axios.get(service.healthUrl, {
+                timeout: 6000,
+                withCredentials: true,
+              })
+              const isDbReady = Boolean(response.data?.database?.ready)
+              return {
+                ...service,
+                status: (isDbReady ? 'ok' : 'waking_up') as ServiceStatus,
+              }
+            }
+
             const controller = new AbortController()
             const timeoutId = setTimeout(() => controller.abort(), 6000)
 
@@ -142,6 +160,8 @@ export default function ServerWaker() {
     switch (name) {
       case 'backend':
         return <Server {...props} />
+      case 'database':
+        return <Database {...props} />
       case 'epic1':
         return <Cpu {...props} />
       case 'epic2':
