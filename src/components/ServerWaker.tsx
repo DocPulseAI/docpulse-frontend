@@ -79,11 +79,20 @@ export default function ServerWaker() {
         services.map(async (service) => {
           if (service.status === 'ok') return service // already awake, skip
           try {
-            if (service.name === 'database') {
+            if (service.name === 'backend' || service.name === 'database') {
               const response = await axios.get(service.healthUrl, {
                 timeout: 6000,
                 withCredentials: true,
               })
+
+              if (service.name === 'backend') {
+                const isBackendReady = response.data?.status === 'ok'
+                return {
+                  ...service,
+                  status: (isBackendReady ? 'ok' : 'waking_up') as ServiceStatus,
+                }
+              }
+
               const isDbReady = Boolean(response.data?.database?.ready)
               return {
                 ...service,
