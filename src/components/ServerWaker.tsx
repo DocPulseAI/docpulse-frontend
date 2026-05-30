@@ -4,6 +4,8 @@ import { Server, Cpu, FileText, Scale, Sparkles, Database } from 'lucide-react'
 import { API_BASE_URL } from '../services/api'
 import './ServerWaker.css'
 
+const SUPPORT_EMAIL = 'vkireeti16@gmail.com'
+
 type ServiceStatus = 'checking' | 'waking_up' | 'ok' | 'error'
 
 interface ServiceEntry {
@@ -231,6 +233,15 @@ export default function ServerWaker() {
         <div className="sw-body">
           <p className="sw-description">
             Waking up Render free-tier containers. This takes 30-50s but ensures a fully operational demo.
+          </p>
+          <p className="sw-support-text">
+            If this keeps loading, contact support:{' '}
+            <a
+              href={`mailto:${SUPPORT_EMAIL}?subject=DocPulse%20Support%20Request`}
+              className="sw-support-link"
+            >
+              {SUPPORT_EMAIL}
+            </a>
           </p>
 
           <div className="sw-services-list">
