@@ -85,7 +85,7 @@ describe('ProjectDetail intelligence resolver coverage', () => {
     })
 
     render(
-      <MemoryRouter initialEntries={['/projects/p1?tab=intelligence']}>
+      <MemoryRouter initialEntries={['/projects/p1?tab=architecture']}>
         <Routes>
           <Route path="/projects/:id" element={<ProjectDetail />} />
         </Routes>
