@@ -259,6 +259,12 @@ export const projectsApi = {
   triggerDocGeneration: (id: string) =>
     api.post<{ message: string; projectId: string; projectName: string; runId?: string }>(`/projects/${id}/generate-docs`),
 
+  getRunStatus: (projectId: string, runId: string) =>
+    api.get<RunStatusResponse>(`/projects/${projectId}/runs/${runId}/status`),
+
+  listRuns: (projectId: string, limit = 5) =>
+    api.get<{ runs: RunStatusResponse[] }>(`/projects/${projectId}/runs`, { params: { limit } }),
+
   inviteMember: (projectId: string, email: string, role: 'owner' | 'admin' | 'member' = 'member') =>
     api.post(`/projects/${projectId}/invite`, { email, role }),
 
@@ -298,6 +304,34 @@ export interface DashboardStats {
   driftTrendChange: number
   coverageTrendChange: number
   riskTrendChange: number
+}
+
+export type RunStageStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped'
+
+export interface RunStage {
+  name: 'QUEUE' | 'EPIC1' | 'EPIC2' | 'EPIC3' | 'EPIC4'
+  label: string
+  description: string
+  status: RunStageStatus
+  error?: string | null
+}
+
+export interface RunStatusResponse {
+  runId: string
+  projectId: string
+  status: string
+  commitSha: string
+  refName: string
+  refType: string
+  triggerType: string
+  startedAt: string | null
+  completedAt: string | null
+  elapsedMs: number
+  estimatedRemainingMs: number | null
+  progressPct: number
+  stages: RunStage[]
+  errorMessage: string | null
+  isTerminal: boolean
 }
 
 export interface IntelligenceView {

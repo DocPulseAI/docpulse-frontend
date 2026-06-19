@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import {
@@ -6,7 +6,8 @@ import {
   inviteMember, cancelInvitation, removeMember, updateMemberRole,
   clearCurrentProject, clearError,
 } from '../store/slices/projectsSlice'
-import { projectsApi, documentsApi, webhookApi, DocumentVersion, WebhookRun, IntelligenceView } from '../services/api'
+import { projectsApi, documentsApi, DocumentVersion, IntelligenceView } from '../services/api'
+import AnalysisProgressModal from '../components/AnalysisProgressModal'
 import DashboardLayout from '../components/DashboardLayout'
 import DocumentList from '../components/DocumentList'
 import CodeSearchPanel from '../components/CodeSearchPanel'
@@ -14,7 +15,7 @@ import DependencyGraphViewer from '../components/DependencyGraphViewer'
 import CallGraphViewer from '../components/CallGraphViewer'
 import ArchitectureGraphViewer from '../components/ArchitectureGraphViewer'
 import IntelligenceStatusBadge from '../components/IntelligenceStatusBadge'
-import { Github, Users, Users2, Clock, Shield, Trash2, ChevronRight, Eye, EyeOff, Tag, GitBranch, FileText, Edit3, History, Sparkles, CheckCircle2, AlertCircle, X, Loader2, Layers, Workflow } from 'lucide-react'
+import { Github, Users, Users2, Clock, Shield, Trash2, ChevronRight, Eye, EyeOff, Tag, GitBranch, FileText, Edit3, History, CheckCircle2, X, Loader2, Layers, Workflow } from 'lucide-react'
 import { useIntelligenceViewResolver } from '../hooks/useIntelligenceViewResolver'
 
 const inputStyle: React.CSSProperties = {
@@ -56,8 +57,7 @@ const ProjectDetail = () => {
   const [docGenLoading, setDocGenLoading] = useState(false)
   const [docGenMessage, setDocGenMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [docGenRunId, setDocGenRunId] = useState<string | null>(null)
-  const [docGenToast, setDocGenToast] = useState<{ type: 'info' | 'success' | 'error'; title: string; message: string } | null>(null)
-  const pollCountRef = useRef(0)
+  const [showProgressModal, setShowProgressModal] = useState(false)
 
   // Versioning state
   const [docVersions, setDocVersions] = useState<DocumentVersion[]>([])
@@ -187,81 +187,21 @@ const ProjectDetail = () => {
     try {
       const response = await projectsApi.triggerDocGeneration(id)
       const runId = response.data.runId
-      setDocGenMessage({ type: 'success', text: runId ? 'Doc generation started. Tracking progress…' : 'Doc generation started!' })
-      setDocGenToast({
-        type: 'info',
-        title: 'Generating documentation',
-        message: 'Started. We will update progress as stages complete.',
-      })
-      pollCountRef.current = 0
-      setDocGenRunId(runId || null)
+      setDocGenMessage({ type: 'success', text: runId ? 'Analysis started — tracking progress…' : 'Analysis started!' })
+      if (runId) {
+        setDocGenRunId(runId)
+        setShowProgressModal(true)
+      }
     } catch (err: any) {
       const detail = err.response?.data?.detail || 'Failed'
       setDocGenMessage({ type: 'error', text: detail })
-      setDocGenToast({ type: 'error', title: 'Generation failed', message: detail })
     } finally { setDocGenLoading(false) }
   }
 
-  useEffect(() => {
-    if (!id || !docGenRunId) return
-
-    let active = true
-    const poll = async () => {
-      try {
-        const response = await webhookApi.getRuns(id)
-        const run = response.data.runs.find((r) => r.id === docGenRunId) as WebhookRun | undefined
-        if (!run || !active) return
-
-        const successfulStages = run.stages.filter((s) => s.status === 'SUCCESS').length
-        const failedStage = run.stages.find((s) => s.status === 'FAILED')
-        const currentStage = run.stages.find((s) => s.status === 'RUNNING')?.stage
-        const totalStages = run.event === 'manual' ? 3 : 4
-
-        if (run.status === 'RUNNING') {
-          setDocGenToast({
-            type: 'info',
-            title: 'Generating documentation',
-            message: currentStage
-              ? `Running ${currentStage.toUpperCase()} (${successfulStages}/${totalStages} complete)`
-              : `${successfulStages}/${totalStages} stages complete`,
-          })
-        } else if (run.status === 'SUCCESS') {
-          setDocGenToast({
-            type: 'success',
-            title: 'Documentation ready',
-            message: `Generation completed (${successfulStages}/${totalStages} stages).`,
-          })
-          setDocGenRunId(null)
-        } else if (run.status === 'FAILED') {
-          setDocGenToast({
-            type: 'error',
-            title: 'Generation failed',
-            message: failedStage?.error || 'One or more pipeline stages failed.',
-          })
-          setDocGenRunId(null)
-        }
-
-        pollCountRef.current += 1
-        if (pollCountRef.current > 120 && run.status === 'RUNNING') {
-          setDocGenToast({
-            type: 'info',
-            title: 'Still processing',
-            message: 'Generation is still running in background. You can continue working.',
-          })
-          setDocGenRunId(null)
-        }
-      } catch {
-        // keep silent; next poll may recover
-      }
-    }
-
-    void poll()
-    const interval = setInterval(poll, 5000)
-    return () => {
-      active = false
-      clearInterval(interval)
-    }
-  }, [id, docGenRunId])
+  // Handle run completion: refresh project intelligence
+  const handleRunComplete = (commitSha: string) => {
+    if (id) dispatch(fetchProjectById(id))
+  }
 
   if (isLoading && !currentProject) return <DashboardLayout><div className="cr-page"><div className="cr-loading"><div className="cr-spinner" /></div></div></DashboardLayout>
   if (!currentProject) return (
@@ -746,23 +686,15 @@ const ProjectDetail = () => {
         )}
       </div>
 
-      {docGenToast && (
-        <div className="repo-toast-container">
-          <div className={`repo-toast repo-toast--${docGenToast.type}`}>
-            <div className="repo-toast-icon">
-              {docGenToast.type === 'success' && <CheckCircle2 size={18} />}
-              {docGenToast.type === 'error' && <AlertCircle size={18} />}
-              {docGenToast.type === 'info' && (docGenRunId ? <Loader2 size={18} className="repo-pulse" /> : <Sparkles size={18} className="repo-pulse" />)}
-            </div>
-            <div className="repo-toast-content">
-              <strong className="repo-toast-title">{docGenToast.title}</strong>
-              <span className="repo-toast-msg">{docGenToast.message}</span>
-            </div>
-            <div className="repo-toast-actions">
-              <button className="repo-toast-close" onClick={() => setDocGenToast(null)}><X size={14} /></button>
-            </div>
-          </div>
-        </div>
+      {/* Analysis Progress Modal */}
+      {showProgressModal && docGenRunId && id && (
+        <AnalysisProgressModal
+          projectId={id}
+          runId={docGenRunId}
+          projectName={currentProject?.name}
+          onDismiss={() => setShowProgressModal(false)}
+          onComplete={handleRunComplete}
+        />
       )}
     </DashboardLayout >
   )
