@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { createProject } from '../store/slices/projectsSlice'
 import DashboardLayout from '../components/DashboardLayout'
+import { SkeletonRepoGroup } from '../components/Skeleton'
 import { authApi, projectsApi, API_BASE_URL } from '../services/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -560,13 +561,45 @@ const Repositories = () => {
                             </span>
                         </div>
 
-                        {/* Loading */}
+                        {/* Loading — skeleton cards */}
                         {loading && (
-                            <div className="repo-loading">
-                                <div className="repo-loading-anim">
-                                    <Loader2 size={24} className="repo-spin" />
-                                </div>
-                                <span>Fetching your repositories…</span>
+                            <div style={{ marginTop: 4 }}>
+                                {[0, 1].map((i) => (
+                                    <div key={i} style={{ marginBottom: 16 }}>
+                                        {/* skeleton owner header */}
+                                        <div style={{
+                                            display: 'flex', alignItems: 'center', gap: 10,
+                                            padding: '10px 16px', marginBottom: 1,
+                                            background: 'var(--bg-subtle)',
+                                            border: '1px solid var(--border-default)',
+                                            borderBottom: 'none',
+                                            borderTopLeftRadius: 10, borderTopRightRadius: 10,
+                                        }}>
+                                            <span className="cr-skeleton cr-skeleton--avatar" />
+                                            <span className="cr-skeleton cr-skeleton--text" style={{ width: 120, marginBottom: 0 }} />
+                                        </div>
+                                        <div style={{
+                                            border: '1px solid var(--border-default)',
+                                            borderBottomLeftRadius: 10, borderBottomRightRadius: 10, overflow: 'hidden',
+                                        }}>
+                                            {[0, 1, 2, 3].map((j) => (
+                                                <div key={j} style={{
+                                                    display: 'flex', alignItems: 'center', gap: 12,
+                                                    padding: '14px 16px',
+                                                    borderBottom: j < 3 ? '1px solid var(--border-subtle)' : 'none',
+                                                    background: 'var(--bg-default)',
+                                                }}>
+                                                    <span className="cr-skeleton cr-skeleton--avatar" style={{ borderRadius: 4 }} />
+                                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                                        <span className="cr-skeleton cr-skeleton--text" style={{ width: '35%', marginBottom: 0 }} />
+                                                        <span className="cr-skeleton cr-skeleton--text-sm" style={{ width: '60%', marginBottom: 0 }} />
+                                                    </div>
+                                                    <span className="cr-skeleton cr-skeleton--btn" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
 
@@ -583,9 +616,17 @@ const Repositories = () => {
                         {!loading && !error && (
                             <div className="repo-list-container">
                                 {owners.length === 0 ? (
-                                    <div className="repo-empty">
-                                        <Search size={24} style={{ opacity: 0.3 }} />
-                                        <p>No repositories found matching your search.</p>
+                                    <div className="cr-empty" style={{ paddingTop: 64 }}>
+                                        <div className="cr-empty-icon"><Search size={22} /></div>
+                                        <p className="cr-empty-title">No repositories found</p>
+                                        <p className="cr-empty-body">Try adjusting your search or filter settings.</p>
+                                        {searchQuery && (
+                                            <div className="cr-empty-cta">
+                                                <button className="cr-doc-btn" style={{ padding: '6px 14px' }} onClick={() => setSearchQuery('')}>
+                                                    Clear search
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     owners.map((ownerLogin) => (

@@ -13,7 +13,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import dagre from 'dagre'
 import { intelligenceApi } from '../services/api'
-import { Boxes, Search, X, Maximize2, Minimize2 } from 'lucide-react'
+import { Boxes, Search, X, Maximize2, Minimize2, ZoomIn, ZoomOut } from 'lucide-react'
 
 interface ArchitectureGraphViewerProps {
     projectId: string
@@ -282,7 +282,19 @@ const ArchitectureGraphViewer: React.FC<ArchitectureGraphViewerProps> = ({ proje
                 attributionPosition="bottom-right"
             >
                 <Background color="var(--border-default)" gap={20} size={1} />
-                <Controls showInteractive={false} />
+                
+                {/* Floating custom zoom controls */}
+                <Panel position="bottom-left" style={{ display: 'flex', gap: 6, background: 'var(--bg-default)', padding: 4, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', marginBottom: 12, marginLeft: 12 }}>
+                    <button onClick={() => rfInstance?.zoomIn()} className="cr-doc-btn" style={{ padding: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Zoom In">
+                        <ZoomIn size={14} />
+                    </button>
+                    <button onClick={() => rfInstance?.zoomOut()} className="cr-doc-btn" style={{ padding: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Zoom Out">
+                        <ZoomOut size={14} />
+                    </button>
+                    <button onClick={() => rfInstance?.fitView({ duration: 400 })} className="cr-doc-btn" style={{ padding: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Fit View">
+                        <Maximize2 size={14} />
+                    </button>
+                </Panel>
                 
                 <Panel position="top-right" style={{ background: 'var(--bg-default)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: 12, minWidth: 280 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

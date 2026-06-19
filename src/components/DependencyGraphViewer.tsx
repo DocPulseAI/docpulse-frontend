@@ -13,7 +13,15 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import dagre from 'dagre'
 import { intelligenceApi } from '../services/api'
-import { GitFork, Search, X, ChevronUp, ChevronDown, Maximize2, Minimize2 } from 'lucide-react'
+import { GitFork, Search, X, ChevronUp, ChevronDown, Maximize2, Minimize2, ZoomIn, ZoomOut } from 'lucide-react'
+
+export const nodeTypeColor: Record<string, string> = {
+    API: '#3B82F6',
+    Controller: '#A855F7',
+    Service: '#22C55E',
+    Entity: '#F97316',
+    Module: '#6B7280',
+}
 
 interface DependencyGraphViewerProps {
     projectId: string
@@ -312,7 +320,28 @@ const DependencyGraphViewer: React.FC<DependencyGraphViewerProps> = ({ projectId
                 attributionPosition="bottom-right"
             >
                 <Background color="var(--border-default)" gap={20} size={1} />
-                <Controls showInteractive={false} />
+                
+                {/* Floating custom zoom controls */}
+                <Panel position="bottom-left" style={{ display: 'flex', gap: 6, background: 'var(--bg-default)', padding: 4, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', marginBottom: 12, marginLeft: 12 }}>
+                    <button onClick={() => rfInstance?.zoomIn()} className="cr-doc-btn" style={{ padding: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Zoom In">
+                        <ZoomIn size={14} />
+                    </button>
+                    <button onClick={() => rfInstance?.zoomOut()} className="cr-doc-btn" style={{ padding: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Zoom Out">
+                        <ZoomOut size={14} />
+                    </button>
+                    <button onClick={() => rfInstance?.fitView({ duration: 400 })} className="cr-doc-btn" style={{ padding: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Fit View">
+                        <Maximize2 size={14} />
+                    </button>
+                </Panel>
+
+                {/* Legend Panel with High Contrast Text */}
+                <Panel position="bottom-center" style={{ background: 'var(--bg-default)', padding: '8px 12px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', display: 'flex', gap: 12, marginBottom: 12 }}>
+                    <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-primary)' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeTypeColor.API }}/> API</span>
+                    <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-primary)' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeTypeColor.Controller }}/> Controller</span>
+                    <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-primary)' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeTypeColor.Service }}/> Service</span>
+                    <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-primary)' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeTypeColor.Entity }}/> Entity</span>
+                    <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-primary)' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeTypeColor.Module }}/> Module</span>
+                </Panel>
                 
                 <Panel position="top-right" style={{ background: 'var(--bg-default)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: 12, minWidth: 280 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

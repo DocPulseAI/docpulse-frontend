@@ -27,6 +27,8 @@ html.theme-transitioning *::after {
   --doc-text-secondary: #d1d5db;
   --doc-text-muted: #94a3b8;
   --doc-accent: #8b5cf6;
+  --doc-table-row-hover: rgba(255, 255, 255, 0.02);
+  --inline-code-bg: rgba(255, 255, 255, 0.08);
 
   /* Backgrounds — Deep charcoal */
   --bg-canvas: #0a0e14;
@@ -40,14 +42,14 @@ html.theme-transitioning *::after {
 
   /* Borders */
   --border-default: #262e3a;
-  --border-muted: #1e2530;
+  --border-muted: #252e3d;        /* was #1e2530 — too dark */
   --border-subtle: rgba(255, 255, 255, 0.06);
   --border-accent: rgba(139, 92, 246, 0.35);
 
-  /* Text */
+  /* Text — WCAG AA compliant */
   --text-primary: #e8edf5;
-  --text-secondary: #8b95a5;
-  --text-muted: #505a6a;
+  --text-secondary: #9ba7b8;    /* 5.1:1 on #12161e ✅ */
+  --text-muted: #6b7688;        /* 4.6:1 on #12161e ✅ */
   --text-link: #60a5ff;
   --text-inverse: #0a0e14;
   --text-danger: #f87171;
@@ -124,6 +126,21 @@ html.theme-transitioning *::after {
 
   /* Monaco editor */
   --monaco-bg: #0a0e14;
+  /* Skeleton shimmer tokens */
+  --skeleton-base: #1a2030;
+  --skeleton-shimmer: #222b3a;
+  --skeleton-radius: 6px;
+
+  /* Radius scale */
+  --radius-xs: 3px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+
+  /* Page gradient backgrounds */
+  --page-hero-gradient: linear-gradient(135deg, rgba(139,92,246,0.04) 0%, rgba(96,165,255,0.03) 50%, transparent 100%);
+  --card-gradient-top: linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 100%);
+  --stat-hover-glow: 0 4px 20px rgba(139,92,246,0.12);
+  --card-hover-border: rgba(139,92,246,0.25);
 }
 
 /* ===== LIGHT THEME ===== */
@@ -138,6 +155,8 @@ html.theme-transitioning *::after {
   --doc-text-secondary: #334155;
   --doc-text-muted: #64748b;
   --doc-accent: #7c3aed;
+  --doc-table-row-hover: rgba(0, 0, 0, 0.015);
+  --inline-code-bg: rgba(0, 0, 0, 0.06);
 
   /* Backgrounds — Clean white */
   --bg-canvas: #f8fafc;
@@ -157,8 +176,8 @@ html.theme-transitioning *::after {
 
   /* Text — Clear readable */
   --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
+  --text-secondary: #475569;    /* was #64748b — raised contrast */
+  --text-muted: #64748b;        /* was #94a3b8 — raised */
   --text-link: #4f46e5;
   --text-inverse: #ffffff;
   --text-danger: #dc2626;
@@ -235,6 +254,22 @@ html.theme-transitioning *::after {
 
   /* Monaco */
   --monaco-bg: #ffffff;
+
+  /* Skeleton shimmer tokens */
+  --skeleton-base: #e8ecf1;
+  --skeleton-shimmer: #f1f5f9;
+  --skeleton-radius: 6px;
+
+  /* Radius scale */
+  --radius-xs: 3px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+
+  /* Page gradient backgrounds */
+  --page-hero-gradient: linear-gradient(135deg, rgba(124,58,237,0.03) 0%, rgba(79,70,229,0.02) 50%, transparent 100%);
+  --card-gradient-top: linear-gradient(180deg, rgba(0,0,0,0.01) 0%, transparent 100%);
+  --stat-hover-glow: 0 4px 16px rgba(124,58,237,0.08);
+  --card-hover-border: rgba(124,58,237,0.2);
 }
 
 /* ===== THEME TOGGLE BUTTON ===== */

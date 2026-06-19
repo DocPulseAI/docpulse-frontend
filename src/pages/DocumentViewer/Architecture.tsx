@@ -117,16 +117,7 @@ export default function DocumentArchitecture() {
             if (!id || !commit) return
             setIsLoading(true)
             try {
-                // 1. Fetch ReactFlow data
-                let reactFlowData: any = null
-                try {
-                    const impactRes = await documentsApi.getImpactReport(id, commit)
-                    reactFlowData = getArchitectureReconstruction(impactRes.data)
-                } catch (e) {
-                    console.warn('ReactFlow data fetch failed', e)
-                }
-
-                // 2. Fetch markdown/mermaid files from new dedicated backend route
+                // Fetch markdown/mermaid files from new dedicated backend route
                 let fetchedFiles: ArchitectureFile[] = []
                 try {
                     const res = await documentsApi.getArchitecture(id, commit)
@@ -142,13 +133,12 @@ export default function DocumentArchitecture() {
                     console.warn('Backend documents fetch failed', err)
                 }
 
-                if (reactFlowData && (reactFlowData.nodes?.length > 0 || reactFlowData.components?.length > 0)) {
-                    fetchedFiles.push({
-                        name: 'Interactive Graph',
-                        content: reactFlowData as any,
-                        lastModified: new Date().toISOString()
-                    })
-                }
+                // Add Interactive Graph unconditionally to avoid duplicate fetches
+                fetchedFiles.push({
+                    name: 'Interactive Graph',
+                    content: null as any,
+                    lastModified: new Date().toISOString()
+                })
 
                 const deduped = dedupeArchitectureFiles(fetchedFiles)
 

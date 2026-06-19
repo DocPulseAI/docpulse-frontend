@@ -3,8 +3,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchProjects, createProject, clearError } from '../store/slices/projectsSlice'
 import DashboardLayout from '../components/DashboardLayout'
-import { motion } from 'framer-motion'
-import { Book, Github, Clock, Plus, Search } from 'lucide-react'
+import { SkeletonProjectsPage } from '../components/Skeleton'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Book, Github, Clock, Plus, Search, EyeOff,
+  ArrowUpDown, CheckCircle2, AlertCircle, Circle, X,
+} from 'lucide-react'
+
+type SortKey = 'updated' | 'name' | 'created'
 
 const Projects = () => {
   const dispatch = useAppDispatch()
@@ -15,6 +21,7 @@ const Projects = () => {
   const [showToken, setShowToken] = useState(false)
   const [formError, setFormError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<SortKey>('updated')
 
   useEffect(() => { dispatch(fetchProjects()) }, [dispatch])
   useEffect(() => { dispatch(clearError()) }, [dispatch])
@@ -43,120 +50,366 @@ const Projects = () => {
     setShowToken(false); setFormError('')
   }
 
-  const filteredProjects = projects.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+  const filtered = projects
+    .filter(p =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    .sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name)
+      if (sortBy === 'created') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    })
+
+  /** Derive a rough "doc health" status from project data */
+  const getDocStatus = (project: typeof projects[0]) => {
+    // Projects with a recent updatedAt that's much later than createdAt likely have docs
+    const created = new Date(project.createdAt).getTime()
+    const updated = new Date(project.updatedAt).getTime()
+    const ageSecs = (updated - created) / 1000
+    if (ageSecs < 30) return 'none'
+    // We can't truly know without a runStatus field here — show neutral
+    return 'active'
+  }
+
+  const DocStatusBadge = ({ project }: { project: typeof projects[0] }) => {
+    const status = getDocStatus(project)
+    if (status === 'none') {
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg-subtle)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '2px 8px', fontWeight: 500 }}>
+          <Circle size={9} /> No docs
+        </span>
+      )
+    }
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--accent-green)', background: 'var(--accent-green-soft)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 6, padding: '2px 8px', fontWeight: 600 }}>
+        <CheckCircle2 size={10} /> Active
+      </span>
+    )
+  }
+
+  const sortLabels: Record<SortKey, string> = {
+    updated: 'Last updated',
+    name: 'Name A–Z',
+    created: 'Recently created',
+  }
 
   return (
     <DashboardLayout>
-      <motion.div className="cr-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-        <div className="cr-page-header">
-          <div>
-            <h1 className="cr-page-title">Projects</h1>
-            <p className="cr-page-subtitle">Track repositories, automate docs, keep architecture current.</p>
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-subtle)' }}>
-              <Search size={14} style={{ color: 'var(--text-muted)' }} />
-              <input type="text" placeholder="Find project..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ border: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: 12, outline: 'none', width: 160 }} />
+      {isLoading && projects.length === 0 ? (
+        <SkeletonProjectsPage />
+      ) : (
+        <motion.div className="cr-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+          {/* ── Page header ── */}
+          <div className="cr-page-header">
+            <div>
+              <h1 className="cr-page-title">Projects</h1>
+              <p className="cr-page-subtitle">Track repositories, automate docs, keep architecture current.</p>
             </div>
-            <button className="cr-doc-btn" style={{ padding: '6px 14px', fontWeight: 600 }} onClick={() => setShowCreateModal(true)}>
-              <Plus size={14} /> New Project
-            </button>
-          </div>
-        </div>
-
-        {error && <div style={{ padding: '8px 12px', marginBottom: 12, borderRadius: 'var(--radius-md)', background: 'var(--severity-critical-glow)', border: '1px solid var(--severity-critical)', fontSize: 13, color: 'var(--severity-critical)' }}>{error}</div>}
-
-        {isLoading ? (
-          <div className="cr-loading"><div className="cr-spinner" /></div>
-        ) : filteredProjects.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
-            <Book size={32} style={{ opacity: 0.3, marginBottom: 12 }} />
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>No projects found</h3>
-            <p style={{ fontSize: 13, marginBottom: 12 }}>{projects.length === 0 ? 'Create your first project to get started.' : 'Try adjusting your search.'}</p>
-            {projects.length === 0 && <button className="cr-doc-btn" style={{ padding: '6px 14px', fontWeight: 600 }} onClick={() => setShowCreateModal(true)}>Create Project</button>}
-          </div>
-        ) : (
-          <div className="cr-settings-list">
-            {filteredProjects.map((project) => (
-              <Link to={`/projects/${project.id}`} key={project.id} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-                <div className="cr-settings-row" style={{ cursor: 'pointer', gap: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 2 }}>
-                    <Book size={16} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{project.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{project.description || 'No description'}</div>
-                    </div>
-                  </div>
-                  {project.githubUrl && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', flex: 2 }}>
-                      <Github size={12} /> {project.githubUrl.replace('https://github.com/', '')}
-                    </span>
-                  )}
-                  <span className="cr-severity cr-severity--info">{project.memberRole}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                    <Clock size={11} /> {new Date(project.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {/* Create Modal */}
-        {showCreateModal && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={closeModal}>
-            <div style={{ background: 'var(--bg-default)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: 480, overflow: 'hidden' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border-default)' }}>
-                <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Create New Project</h3>
-                <button onClick={closeModal} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-subtle)', color: 'var(--text-muted)', cursor: 'pointer' }}>×</button>
-              </div>
-              <form onSubmit={handleCreateProject} style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Project Name *</label>
-                  <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="e.g. backend-service" autoFocus
-                    style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-subtle)', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Description</label>
-                  <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Short description" rows={2}
-                    style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-subtle)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', resize: 'vertical' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>GitHub URL *</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-subtle)' }}>
-                    <Github size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                    <input type="url" name="githubUrl" value={formData.githubUrl} onChange={handleChange} placeholder="https://github.com/user/repo" required
-                      style={{ border: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: 13, outline: 'none', flex: 1 }} />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input type="checkbox" name="autoGenerateDocs" id="autoGenerateDocs" checked={formData.autoGenerateDocs} onChange={handleChange} />
-                  <label htmlFor="autoGenerateDocs" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Auto-generate docs on push</label>
-                </div>
-                {formData.autoGenerateDocs && (
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>GitHub Token</label>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <input type={showToken ? 'text' : 'password'} name="githubAccessToken" value={formData.githubAccessToken} onChange={handleChange} placeholder="ghp_xxx"
-                        style={{ flex: 1, padding: '7px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-subtle)', color: 'var(--text-primary)', fontSize: 12, outline: 'none' }} />
-                      <button type="button" className="cr-doc-btn" onClick={() => setShowToken(!showToken)}>{showToken ? 'Hide' : 'Show'}</button>
-                    </div>
-                  </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {/* Search */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px',
+                borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)',
+                background: 'var(--bg-subtle)', transition: 'border-color 0.15s',
+              }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent-primary)')}
+                onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+              >
+                <Search size={13} style={{ color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  placeholder="Find project…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ border: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: 12, outline: 'none', width: 160 }}
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'flex' }}>
+                    <X size={11} />
+                  </button>
                 )}
-                {formError && <div style={{ fontSize: 12, color: 'var(--severity-critical)' }}>{formError}</div>}
-                {error && <div style={{ fontSize: 12, color: 'var(--severity-critical)' }}>{error}</div>}
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
-                  <button type="button" className="cr-doc-btn" onClick={closeModal}>Cancel</button>
-                  <button type="submit" className="cr-doc-btn" style={{ background: 'var(--accent-primary)', color: '#fff', border: 'none' }} disabled={isLoading}>{isLoading ? 'Creating...' : 'Create'}</button>
-                </div>
-              </form>
+              </div>
+
+              {/* Sort */}
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortKey)}
+                  style={{
+                    padding: '6px 28px 6px 10px', borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-default)', background: 'var(--bg-subtle)',
+                    color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', outline: 'none',
+                    appearance: 'none',
+                  }}
+                >
+                  {(Object.keys(sortLabels) as SortKey[]).map(k => (
+                    <option key={k} value={k}>{sortLabels[k]}</option>
+                  ))}
+                </select>
+                <ArrowUpDown size={11} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+              </div>
+
+              <button
+                className="cr-doc-btn cr-doc-btn--primary"
+                style={{ padding: '6px 14px', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 5 }}
+                onClick={() => setShowCreateModal(true)}
+              >
+                <Plus size={14} /> New Project
+              </button>
             </div>
           </div>
-        )}
-      </motion.div>
+
+          {/* Error banner */}
+          {error && (
+            <div className="cr-banner cr-banner--error">
+              <AlertCircle size={14} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Content */}
+          {filtered.length === 0 ? (
+            <div className="cr-settings-list">
+              <div className="cr-empty">
+                <div className="cr-empty-icon">
+                  {searchQuery ? <Search size={22} /> : <Book size={22} />}
+                </div>
+                <p className="cr-empty-title">{searchQuery ? 'No projects found' : 'No projects yet'}</p>
+                <p className="cr-empty-body">
+                  {searchQuery
+                    ? `No projects matching "${searchQuery}". Try adjusting your search.`
+                    : 'Create your first project to start generating AI-powered documentation.'}
+                </p>
+                <div className="cr-empty-cta">
+                  {!searchQuery && (
+                    <button
+                      className="cr-doc-btn cr-doc-btn--primary"
+                      style={{ padding: '7px 16px', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
+                      onClick={() => setShowCreateModal(true)}
+                    >
+                      <Plus size={14} /> Create First Project
+                    </button>
+                  )}
+                  {searchQuery && (
+                    <button className="cr-doc-btn" style={{ padding: '6px 14px' }} onClick={() => setSearchQuery('')}>
+                      Clear search
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="cr-settings-list">
+              {/* Column headers */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '6px 16px',
+                fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
+                textTransform: 'uppercase', letterSpacing: '0.04em',
+                background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-default)',
+              }}>
+                <span style={{ flex: 2 }}>Project</span>
+                <span style={{ flex: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Github size={11} /> Repository
+                </span>
+                <span style={{ width: 80 }}>Status</span>
+                <span style={{ width: 80 }}>Role</span>
+                <span style={{ width: 90, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Clock size={10} /> Updated
+                </span>
+              </div>
+
+              <AnimatePresence initial={false}>
+                {filtered.map((project, i) => (
+                  <motion.div
+                    key={project.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ delay: i * 0.02 }}
+                  >
+                    <Link to={`/projects/${project.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+                      <div className="cr-settings-row" style={{ cursor: 'pointer', gap: 12 }}>
+                        {/* Project name + desc */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 2, minWidth: 0 }}>
+                          <div style={{
+                            width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: 'var(--accent-primary-soft)', color: 'var(--accent-primary)',
+                          }}>
+                            <Book size={14} />
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {project.name}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {project.description || 'No description'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* GitHub URL */}
+                        {project.githubUrl ? (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', flex: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <Github size={11} style={{ flexShrink: 0 }} />
+                            {project.githubUrl.replace('https://github.com/', '')}
+                          </span>
+                        ) : (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', flex: 2 }}>
+                            <EyeOff size={11} /> No repo
+                          </span>
+                        )}
+
+                        {/* Doc status */}
+                        <span style={{ width: 80 }}>
+                          <DocStatusBadge project={project} />
+                        </span>
+
+                        {/* Role */}
+                        <span className="cr-severity cr-severity--info" style={{ width: 80 }}>{project.memberRole}</span>
+
+                        {/* Updated */}
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', width: 90 }}>
+                          <Clock size={10} /> {new Date(project.updatedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* ── Create Modal ── */}
+          <AnimatePresence>
+            {showCreateModal && (
+              <motion.div
+                style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={closeModal}
+              >
+                <motion.div
+                  style={{ background: 'var(--bg-default)', border: '1px solid var(--border-default)', borderRadius: 12, width: '100%', maxWidth: 480, overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}
+                  initial={{ scale: 0.96, y: 16 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.96, y: 16 }}
+                  transition={{ duration: 0.2 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Modal header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--border-default)', background: 'var(--bg-subtle)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--accent-primary-soft)', color: 'var(--accent-primary)' }}>
+                        <Plus size={14} />
+                      </div>
+                      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Create New Project</h3>
+                    </div>
+                    <button
+                      onClick={closeModal}
+                      style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--bg-subtle)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16 }}
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  {/* Modal form */}
+                  <form onSubmit={handleCreateProject} style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {/* Name */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>
+                        Project Name <span style={{ color: 'var(--text-danger)' }}>*</span>
+                      </label>
+                      <input
+                        type="text" name="name" value={formData.name} onChange={handleChange}
+                        placeholder="e.g. backend-service" autoFocus
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-canvas)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', transition: 'border-color 0.15s' }}
+                        onFocus={(e) => (e.target.style.borderColor = 'var(--accent-primary)')}
+                        onBlur={(e) => (e.target.style.borderColor = 'var(--border-default)')}
+                      />
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Description</label>
+                      <textarea
+                        name="description" value={formData.description} onChange={handleChange}
+                        placeholder="Short description (optional)" rows={2}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-canvas)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit', transition: 'border-color 0.15s' }}
+                        onFocus={(e) => (e.target.style.borderColor = 'var(--accent-primary)')}
+                        onBlur={(e) => (e.target.style.borderColor = 'var(--border-default)')}
+                      />
+                    </div>
+
+                    {/* GitHub URL */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>
+                        GitHub URL <span style={{ color: 'var(--text-danger)' }}>*</span>
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-canvas)', transition: 'border-color 0.15s' }}
+                        onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent-primary)')}
+                        onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+                      >
+                        <Github size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                        <input
+                          type="url" name="githubUrl" value={formData.githubUrl} onChange={handleChange}
+                          placeholder="https://github.com/user/repo" required
+                          style={{ border: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: 13, outline: 'none', flex: 1 }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Auto generate toggle */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
+                      <input type="checkbox" name="autoGenerateDocs" id="autoGenerateDocs" checked={formData.autoGenerateDocs} onChange={handleChange} style={{ cursor: 'pointer' }} />
+                      <div>
+                        <label htmlFor="autoGenerateDocs" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>Auto-generate docs on push</label>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>Automatically regenerate documentation when code is pushed</div>
+                      </div>
+                    </div>
+
+                    {/* Token field (conditional) */}
+                    {formData.autoGenerateDocs && (
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>GitHub Token</label>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <input
+                            type={showToken ? 'text' : 'password'} name="githubAccessToken"
+                            value={formData.githubAccessToken} onChange={handleChange}
+                            placeholder="ghp_xxxxxxxxxxxx"
+                            style={{ flex: 1, padding: '8px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-canvas)', color: 'var(--text-primary)', fontSize: 12, outline: 'none' }}
+                          />
+                          <button type="button" className="cr-doc-btn" onClick={() => setShowToken(!showToken)} style={{ padding: '0 12px', whiteSpace: 'nowrap' }}>
+                            {showToken ? 'Hide' : 'Show'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Errors */}
+                    {(formError || error) && (
+                      <div className="cr-banner cr-banner--error" style={{ marginBottom: 0 }}>
+                        <AlertCircle size={13} />
+                        <span>{formError || error}</span>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4, borderTop: '1px solid var(--border-default)', marginTop: 4 }}>
+                      <button type="button" className="cr-doc-btn" onClick={closeModal} style={{ padding: '7px 14px' }}>Cancel</button>
+                      <button type="submit" className="cr-doc-btn cr-doc-btn--primary" disabled={isLoading} style={{ padding: '7px 18px', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+                        {isLoading ? 'Creating…' : <><Plus size={13} /> Create Project</>}
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
     </DashboardLayout>
   )
 }

@@ -491,6 +491,15 @@
     color: var(--text-primary);
 }
 
+.doc-md-reader h1 a,
+.doc-md-reader h2 a,
+.doc-md-reader h3 a,
+.doc-md-reader h4 a,
+.doc-md-reader h5 a,
+.doc-md-reader h6 a {
+    color: var(--text-primary) !important;
+}
+
 .doc-md-reader p {
     font-size: 16px;
     margin: 0 0 16px;
@@ -522,7 +531,7 @@
 .doc-md-reader code {
     font-family: var(--font-mono);
     font-size: 14px;
-    background: var(--bg-subtle);
+    background: var(--inline-code-bg);
     padding: 2px 6px;
     border-radius: 4px;
     border: 1px solid var(--border-subtle);
@@ -535,6 +544,7 @@
     padding: 12px 16px;
     overflow-x: auto;
     margin: 8px 0 16px;
+    color: var(--text-primary);
 }
 
 .doc-md-reader pre code,
@@ -544,6 +554,7 @@
     padding: 0;
     font-size: 13px;
     line-height: 1.5;
+    color: inherit;
 }
 
 .doc-md-codeblock {
@@ -553,12 +564,13 @@
     padding: 12px 16px;
     overflow-x: auto;
     margin: 8px 0 16px;
+    color: var(--text-primary);
 }
 
 .doc-md-reader blockquote {
     margin: 0 0 12px;
     padding: 0 16px;
-    border-left: 3px solid var(--accent-primary-border);
+    border-left: 3px solid var(--doc-accent);
     color: var(--text-secondary);
 }
 
@@ -569,6 +581,14 @@
     font-size: 14px;
     border: 1px solid var(--border-default);
     border-radius: 6px;
+}
+
+.doc-md-reader tr {
+    transition: background-color 0.1s ease;
+}
+
+.doc-md-reader tr:hover {
+    background-color: var(--doc-table-row-hover);
 }
 
 .doc-md-reader th {
@@ -1778,4 +1798,9 @@
 .doc-workspace-container .cr-page--flush {
     padding: 0 !important;
     max-width: none;
+}
+
+/* Hook to hide empty document sections */
+.doc-empty-section {
+    display: none !important;
 }
