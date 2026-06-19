@@ -22,12 +22,12 @@ html.theme-transitioning *::after {
   --doc-surface: #111827;
   --doc-surface-card: #1f2937;
   --doc-surface-elevated: #273449;
-  --doc-border: #334155;
+  --doc-border: #2e3b52;
   --doc-text-primary: #f8fafc;
-  --doc-text-secondary: #d1d5db;
-  --doc-text-muted: #94a3b8;
+  --doc-text-secondary: #cbd5e1;
+  --doc-text-muted: #8a99ad;
   --doc-accent: #8b5cf6;
-  --doc-table-row-hover: rgba(255, 255, 255, 0.02);
+  --doc-table-row-hover: rgba(255, 255, 255, 0.025);
   --inline-code-bg: rgba(255, 255, 255, 0.08);
 
   /* Backgrounds — Deep charcoal */
@@ -41,15 +41,15 @@ html.theme-transitioning *::after {
   --bg-hover: rgba(255, 255, 255, 0.04);
 
   /* Borders */
-  --border-default: #262e3a;
-  --border-muted: #252e3d;        /* was #1e2530 — too dark */
-  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: #2a3547;
+  --border-muted: #1c2433;
+  --border-subtle: rgba(255, 255, 255, 0.08);
   --border-accent: rgba(139, 92, 246, 0.35);
 
   /* Text — WCAG AA compliant */
-  --text-primary: #e8edf5;
-  --text-secondary: #9ba7b8;    /* 5.1:1 on #12161e ✅ */
-  --text-muted: #6b7688;        /* 4.6:1 on #12161e ✅ */
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #8a99ad;
   --text-link: #60a5ff;
   --text-inverse: #0a0e14;
   --text-danger: #f87171;
@@ -150,10 +150,10 @@ html.theme-transitioning *::after {
   --doc-surface: #ffffff;
   --doc-surface-card: #ffffff;
   --doc-surface-elevated: #f1f5f9;
-  --doc-border: #e2e8f0;
+  --doc-border: #cbd5e1;
   --doc-text-primary: #0f172a;
   --doc-text-secondary: #334155;
-  --doc-text-muted: #64748b;
+  --doc-text-muted: #5e6f85;
   --doc-accent: #7c3aed;
   --doc-table-row-hover: rgba(0, 0, 0, 0.015);
   --inline-code-bg: rgba(0, 0, 0, 0.06);
@@ -169,15 +169,15 @@ html.theme-transitioning *::after {
   --bg-hover: rgba(0, 0, 0, 0.03);
 
   /* Borders — Soft gray */
-  --border-default: #e2e8f0;
-  --border-muted: #edf2f7;
-  --border-subtle: rgba(0, 0, 0, 0.05);
+  --border-default: #cbd5e1;
+  --border-muted: #e2e8f0;
+  --border-subtle: rgba(0, 0, 0, 0.08);
   --border-accent: rgba(109, 40, 217, 0.25);
 
   /* Text — Clear readable */
-  --text-primary: #1e293b;
-  --text-secondary: #475569;    /* was #64748b — raised contrast */
-  --text-muted: #64748b;        /* was #94a3b8 — raised */
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #5e6f85;
   --text-link: #4f46e5;
   --text-inverse: #ffffff;
   --text-danger: #dc2626;
