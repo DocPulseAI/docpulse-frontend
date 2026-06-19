@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { documentsApi } from '../../services/api'
 import MarkdownRenderer from '../../components/MarkdownRenderer'
+import DocCard from '../../components/DocCard'
 
 export default function DocumentOverview() {
     const { id, commit } = useParams<{ id: string; commit: string }>()
@@ -39,23 +40,13 @@ export default function DocumentOverview() {
     return (
         <div className="cr-page">
             <div className="cr-grid-2">
-                <section className="cr-card">
-                    <div className="cr-card-header">
-                        <h3 className="cr-card-title">Documentation Overview</h3>
-                    </div>
-                    <div className="cr-card-body portal-markdown cr-markdown-small">
-                        <MarkdownRenderer content={readmeContent || summaryContent || '# No overview available'} />
-                    </div>
-                </section>
+                <DocCard title="Documentation Overview" bodyClassName="portal-markdown cr-markdown-small">
+                    <MarkdownRenderer content={readmeContent || summaryContent || '# No overview available'} />
+                </DocCard>
 
-                <section className="cr-card">
-                    <div className="cr-card-header">
-                        <h3 className="cr-card-title">Documentation Health</h3>
-                    </div>
-                    <div className="cr-card-body portal-markdown cr-markdown-small">
-                        <MarkdownRenderer content={healthContent || 'No documentation health report found.'} />
-                    </div>
-                </section>
+                <DocCard title="Documentation Health" bodyClassName="portal-markdown cr-markdown-small">
+                    <MarkdownRenderer content={healthContent || 'No documentation health report found.'} />
+                </DocCard>
             </div>
         </div>
     )

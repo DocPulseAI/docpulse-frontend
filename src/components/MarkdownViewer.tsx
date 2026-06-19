@@ -7,7 +7,18 @@ interface MarkdownViewerProps {
 
 const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content }) => {
     return (
-        <div className="markdown-viewer-container p-4 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 overflow-auto max-h-full">
+        <div 
+            style={{ 
+                padding: '24px', 
+                background: 'var(--bg-default)', 
+                borderRadius: 'var(--radius-lg)', 
+                border: '1px solid var(--border-default)', 
+                overflow: 'auto', 
+                maxHeight: '100%',
+                color: 'var(--text-primary)'
+            }}
+            className="cr-markdown-small"
+        >
             <MarkdownRenderer content={content} />
         </div>
     )

@@ -32,7 +32,6 @@ vi.mock('../store/slices/projectsSlice', () => ({ fetchProjects: () => ({ type: 
 
 vi.mock('../components/DashboardLayout', () => ({ default: ({ children }: any) => <div>{children}</div> }))
 vi.mock('../components/SearchBar', () => ({ default: () => <div>search</div> }))
-vi.mock('../components/ArchitectureGraph', () => ({ default: () => <div>arch</div> }))
 vi.mock('../components/ExecutionFlow', () => ({ default: () => <div>flow</div> }))
 vi.mock('../components/MarkdownViewer', () => ({ default: ({ content }: any) => <div>{String(content)}</div> }))
 vi.mock('../components/CodeSearchPanel', () => ({ default: () => <div>code-search</div> }))

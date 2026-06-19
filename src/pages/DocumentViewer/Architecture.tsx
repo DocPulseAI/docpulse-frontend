@@ -61,13 +61,15 @@ function dedupeArchitectureFiles(items: ArchitectureFile[]): ArchitectureFile[] 
     return unique
 }
 
-import InteractiveGraph from '../../components/InteractiveGraph'
+import ArchitectureGraphViewer from '../../components/ArchitectureGraphViewer'
 
 function FileRenderer({ file }: { file: ArchitectureFile }) {
+    const { id, commit } = useParams<{ id: string; commit: string }>()
+
     if (file.name === 'Interactive Graph') {
         return (
             <div style={{ width: '100%', height: 'calc(100vh - 64px)' }} className="cr-page cr-page--flush">
-                <InteractiveGraph data={file.content as any} type="architecture" />
+                <ArchitectureGraphViewer projectId={id!} commitHash={commit!} />
             </div>
         )
     }
@@ -131,6 +133,7 @@ export default function DocumentArchitecture() {
                     fetchedFiles = (res.data.files || []).filter((f: ArchitectureFile) => {
                         const name = f.name.toLowerCase()
                         // Filter out files that are usually better served by other specialized tabs
+                        if (name.includes('readme.generated.md') || name.includes('doc_snapshot.json') || name.includes('er.mmd')) return false
                         if (name.includes('dependency') && name.endsWith('.mmd')) return false
                         if (name.includes('impact') && name.endsWith('.json')) return false
                         return true

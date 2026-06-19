@@ -17,6 +17,17 @@ html.theme-transitioning *::after {
 /* ===== DARK THEME (DEFAULT) ===== */
 :root,
 [data-theme="dark"] {
+  /* Documentation theme variables */
+  --doc-bg: #0f172a;
+  --doc-surface: #111827;
+  --doc-surface-card: #1f2937;
+  --doc-surface-elevated: #273449;
+  --doc-border: #334155;
+  --doc-text-primary: #f8fafc;
+  --doc-text-secondary: #d1d5db;
+  --doc-text-muted: #94a3b8;
+  --doc-accent: #8b5cf6;
+
   /* Backgrounds — Deep charcoal */
   --bg-canvas: #0a0e14;
   --bg-default: #12161e;
@@ -117,6 +128,17 @@ html.theme-transitioning *::after {
 
 /* ===== LIGHT THEME ===== */
 [data-theme="light"] {
+  /* Documentation theme variables */
+  --doc-bg: #f8fafc;
+  --doc-surface: #ffffff;
+  --doc-surface-card: #ffffff;
+  --doc-surface-elevated: #f1f5f9;
+  --doc-border: #e2e8f0;
+  --doc-text-primary: #0f172a;
+  --doc-text-secondary: #334155;
+  --doc-text-muted: #64748b;
+  --doc-accent: #7c3aed;
+
   /* Backgrounds — Clean white */
   --bg-canvas: #f8fafc;
   --bg-default: #ffffff;

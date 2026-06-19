@@ -48,7 +48,7 @@ export default function DocumentViewerLayout() {
 
     return (
         <DashboardLayout>
-            <div className="cr-page cr-page--flush" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="doc-workspace-container cr-page cr-page--flush" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {/* Header */}
                 <div style={{ padding: '10px 24px 0', background: 'var(--bg-default)', borderBottom: '1px solid var(--border-default)' }}>
                     <div className="cr-doc-breadcrumb" style={{ marginBottom: 8 }}>
@@ -100,8 +100,51 @@ export default function DocumentViewerLayout() {
                 {/* Main Content Area with Sidebar */}
                 <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
                     {/* Navigation Sidebar */}
-                    <div style={{ width: '240px', borderRight: '1px solid var(--border-default)', background: 'var(--bg-default)', overflowY: 'auto' }}>
-                        <nav style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ width: '240px', borderRight: '1px solid var(--border-default)', background: 'var(--bg-default)', overflowY: 'auto', paddingTop: '16px' }}>
+                        {metadata && (
+                            <details style={{ 
+                                margin: '0 12px 12px', 
+                                padding: '10px 12px', 
+                                background: 'var(--bg-subtle)', 
+                                borderRadius: 'var(--radius-lg)', 
+                                border: '1px solid var(--border-default)',
+                                fontSize: '11px'
+                            }}>
+                                <summary style={{ 
+                                    fontWeight: 600, 
+                                    color: 'var(--text-primary)', 
+                                    textTransform: 'uppercase', 
+                                    letterSpacing: '0.05em', 
+                                    cursor: 'pointer',
+                                    outline: 'none',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <span>System Metadata</span>
+                                    <span style={{ fontSize: '9px', opacity: 0.5, textTransform: 'none' }}>show</span>
+                                </summary>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: 'var(--text-muted)' }}>Project:</span>
+                                        <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{id}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: 'var(--text-muted)' }}>Branch:</span>
+                                        <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{metadata.branch}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: 'var(--text-muted)' }}>Commit:</span>
+                                        <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{(commit || '').slice(0, 8)}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: 'var(--text-muted)' }}>Version:</span>
+                                        <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{metadata.version || '1.0.0'}</span>
+                                    </div>
+                                </div>
+                            </details>
+                        )}
+                        <nav style={{ padding: '0 12px 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             {tabs.map((t) => (
                                 <NavLink
                                     key={t.to}

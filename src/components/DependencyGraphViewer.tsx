@@ -212,10 +212,17 @@ const DependencyGraphViewer: React.FC<DependencyGraphViewerProps> = ({ projectId
 
     useEffect(() => {
         if (allNodes.length === 0 || !rfInstance) return;
-        const id = setTimeout(() => {
-            rfInstance.fitView({ padding: 0.12, duration: 400 });
-        }, 60);
-        return () => clearTimeout(id);
+        
+        // Progressive fitView triggers to ensure layout is perfect even during UI container rendering animations
+        const t1 = setTimeout(() => rfInstance.fitView({ padding: 0.12, duration: 200 }), 50);
+        const t2 = setTimeout(() => rfInstance.fitView({ padding: 0.12, duration: 200 }), 200);
+        const t3 = setTimeout(() => rfInstance.fitView({ padding: 0.12, duration: 200 }), 500);
+        
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+            clearTimeout(t3);
+        };
     }, [allNodes.length, rfInstance]);
 
     // Filter nodes based on focus and search

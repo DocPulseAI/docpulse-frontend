@@ -18,13 +18,13 @@ const columns = [
             const m = info.getValue()
             let color = 'var(--text-primary)'
             let bg = 'var(--bg-subtle)'
-            if (m === 'GET') { color = '#0284c7'; bg = '#e0f2fe' }
-            else if (m === 'POST') { color = '#16a34a'; bg = '#dcfce7' }
-            else if (m === 'PUT' || m === 'PATCH') { color = '#d97706'; bg = '#fef3c7' }
-            else if (m === 'DELETE') { color = '#dc2626'; bg = '#fee2e2' }
+            if (m === 'GET') { color = 'var(--severity-info)'; bg = 'var(--severity-info-glow)' }
+            else if (m === 'POST') { color = 'var(--text-success)'; bg = 'var(--accent-green-soft)' }
+            else if (m === 'PUT' || m === 'PATCH') { color = 'var(--text-warning)'; bg = 'var(--severity-medium-glow)' }
+            else if (m === 'DELETE') { color = 'var(--text-danger)'; bg = 'var(--severity-critical-glow)' }
             return (
                 <span style={{
-                    padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600,
+                    padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontSize: '11px', fontWeight: 600,
                     backgroundColor: bg, color: color, display: 'inline-block', minWidth: '50px', textAlign: 'center'
                 }}>
                     {m}
@@ -161,7 +161,7 @@ export default function DocumentApiExplorer() {
                 </div>
             </div>
 
-            <div className="cr-card">
+            <div className="doc-card">
                 {showJson ? (
                     <div style={{ height: '600px', width: '100%', borderRadius: '8px', overflow: 'hidden' }}>
                         <Editor
@@ -172,13 +172,13 @@ export default function DocumentApiExplorer() {
                             options={{ readOnly: true, minimap: { enabled: false }, fontSize: 13, fontFamily: 'monospace' }}
                         />
                     </div>
-                ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                ) : (
+                    <table className="doc-table">
                         <thead>
                             {table.getHeaderGroups().map(headerGroup => (
-                                <tr key={headerGroup.id} style={{ borderBottom: '1px solid var(--border-default)', background: 'var(--bg-subtle)' }}>
+                                <tr key={headerGroup.id}>
                                     {headerGroup.headers.map(header => (
-                                        <th key={header.id} style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                                        <th key={header.id}>
                                             {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                                         </th>
                                     ))}
@@ -187,9 +187,9 @@ export default function DocumentApiExplorer() {
                         </thead>
                         <tbody>
                             {table.getRowModel().rows.map(row => (
-                                <tr key={row.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                                <tr key={row.id}>
                                     {row.getVisibleCells().map(cell => (
-                                        <td key={cell.id} style={{ padding: '12px 16px' }}>
+                                        <td key={cell.id}>
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </td>
                                     ))}

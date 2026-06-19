@@ -159,32 +159,34 @@ export default function DocumentDataModel() {
             <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
                 {view === 'graph' ? (
                     <InteractiveGraph data={graphData} type="datamodel" />
-                ) : (
-                    <div style={{ height: '100%', overflow: 'auto', padding: '0 0 24px' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-subtle)', zIndex: 5 }}>
-                                {table.getHeaderGroups().map(headerGroup => (
-                                    <tr key={headerGroup.id} style={{ borderBottom: '1px solid var(--border-default)' }}>
-                                        {headerGroup.headers.map(header => (
-                                            <th key={header.id} style={{ padding: '12px 24px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                                {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                ))}
-                            </thead>
-                            <tbody>
-                                {table.getRowModel().rows.map(row => (
-                                    <tr key={row.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.2s' }} className="cr-table-row-hover">
-                                        {row.getVisibleCells().map(cell => (
-                                            <td key={cell.id} style={{ padding: '14px 24px', verticalAlign: 'top' }}>
-                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                ) : (
+                    <div style={{ height: '100%', overflow: 'auto', padding: '24px 32px' }}>
+                        <div className="doc-table-container">
+                            <table className="doc-table">
+                                <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-subtle)', zIndex: 5 }}>
+                                    {table.getHeaderGroups().map(headerGroup => (
+                                        <tr key={headerGroup.id}>
+                                            {headerGroup.headers.map(header => (
+                                                <th key={header.id}>
+                                                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </thead>
+                                <tbody>
+                                    {table.getRowModel().rows.map(row => (
+                                        <tr key={row.id}>
+                                            {row.getVisibleCells().map(cell => (
+                                                <td key={cell.id}>
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>

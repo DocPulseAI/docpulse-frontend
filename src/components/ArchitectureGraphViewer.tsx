@@ -19,6 +19,7 @@ interface ArchitectureGraphViewerProps {
     projectId: string
     commitHash: string
     onNodeClick?: (label: string) => void
+    type?: 'architecture' | 'dependencies' | 'repository'
 }
 
 import { nodeTypes, applyEdgeDefaults, EDGE_DEFAULTS } from './edgeConfig'
@@ -72,7 +73,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
     return { nodes, edges }
 }
 
-const ArchitectureGraphViewer: React.FC<ArchitectureGraphViewerProps> = ({ projectId, commitHash, onNodeClick }) => {
+const ArchitectureGraphViewer: React.FC<ArchitectureGraphViewerProps> = ({ projectId, commitHash, onNodeClick, type = 'repository' }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([])
     const [edges, setEdges, onEdgesChange] = useEdgesState([])
     const [allNodes, setAllNodes] = useState<Node[]>([])
@@ -111,7 +112,11 @@ const ArchitectureGraphViewer: React.FC<ArchitectureGraphViewerProps> = ({ proje
             if (!projectId || !commitHash) return
             setLoading(true)
             try {
-                const response = await intelligenceApi.getRepositoryGraph(projectId, commitHash)
+                const response = type === 'dependencies'
+                    ? await intelligenceApi.getDependencies(projectId, commitHash)
+                    : type === 'architecture'
+                    ? await intelligenceApi.getArchitecture(projectId, commitHash)
+                    : await intelligenceApi.getRepositoryGraph(projectId, commitHash)
                 const data = response.data
                 if (data?.status === 'analysis_not_available') {
                     setAnalysisUnavailable(true)
@@ -173,14 +178,21 @@ const ArchitectureGraphViewer: React.FC<ArchitectureGraphViewerProps> = ({ proje
         }
 
         fetchGraph()
-    }, [projectId, commitHash, setEdges, setNodes])
+    }, [projectId, commitHash, type, setEdges, setNodes])
 
     useEffect(() => {
         if (allNodes.length === 0 || !rfInstance) return;
-        const id = setTimeout(() => {
-            rfInstance.fitView({ padding: 0.12, duration: 400 });
-        }, 60);
-        return () => clearTimeout(id);
+        
+        // Progressive fitView triggers to ensure layout is perfect even during UI container rendering animations
+        const t1 = setTimeout(() => rfInstance.fitView({ padding: 0.12, duration: 200 }), 50);
+        const t2 = setTimeout(() => rfInstance.fitView({ padding: 0.12, duration: 200 }), 200);
+        const t3 = setTimeout(() => rfInstance.fitView({ padding: 0.12, duration: 200 }), 500);
+        
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+            clearTimeout(t3);
+        };
     }, [allNodes.length, rfInstance]);
 
     // Filter nodes based on focus and search

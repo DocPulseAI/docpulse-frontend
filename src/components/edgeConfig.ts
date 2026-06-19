@@ -1,10 +1,10 @@
 import { Edge, MarkerType } from 'reactflow';
 import CustomGraphNode from './CustomGraphNode';
 
-const EDGE_STROKE = '#334155';
-const LABEL_BG = '#0F172A';
-const LABEL_BORDER = 'rgba(255,255,255,0.10)';
-const LABEL_TEXT = '#94A3B8';
+const EDGE_STROKE = 'var(--border-default)';
+const LABEL_BG = 'var(--bg-default)';
+const LABEL_BORDER = 'var(--border-default)';
+const LABEL_TEXT = 'var(--text-secondary)';
 
 const MARKER_END = {
   type: MarkerType.ArrowClosed,
@@ -20,7 +20,7 @@ export const EDGE_LINE_STYLE: React.CSSProperties = {
 
 export const EDGE_LABEL_PROPS = {
   labelStyle: {
-    fontFamily: "'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace",
+    fontFamily: "var(--font-mono)",
     fontSize: 9,
     fontWeight: 600,
     letterSpacing: '0.06em',

@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import ReactFlow, {
     Background,
     Controls,
@@ -8,7 +8,9 @@ import ReactFlow, {
     Connection,
     MarkerType,
     useNodesState,
-    useEdgesState
+    useEdgesState,
+    ReactFlowInstance,
+    ReactFlowProvider
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import * as d3 from 'd3'
@@ -23,9 +25,10 @@ interface InteractiveGraphProps {
     type?: 'architecture' | 'dependencies' | 'datamodel'
 }
 
-const InteractiveGraph = ({ data, type = 'architecture' }: InteractiveGraphProps) => {
+const InteractiveGraphContent = ({ data, type = 'architecture' }: InteractiveGraphProps) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([])
     const [edges, setEdges, onEdgesChange] = useEdgesState([])
+    const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null)
 
     const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), [setEdges])
 
@@ -62,21 +65,20 @@ const InteractiveGraph = ({ data, type = 'architecture' }: InteractiveGraphProps
         // 2. Map D3 nodes to ReactFlow nodes
         const rfNodes: Node[] = simulationNodes.map((n: any) => {
             let color = 'var(--text-primary)'
-            let bg = 'var(--bg-card)'
+            let bg = 'var(--bg-default)'
             let borderColor = 'var(--border-default)'
             const nodeType = String(n.type || '').toLowerCase()
 
-            // Premium Dark Theme styling
             if (nodeType.includes('api') || nodeType.includes('router') || nodeType.includes('controller')) {
-                bg = 'linear-gradient(135deg, var(--accent-primary), #6366f1)'
-                color = '#fff'
-                borderColor = 'transparent'
-            } else if (nodeType.includes('service') || nodeType.includes('logic')) {
-                bg = 'rgba(99, 102, 241, 0.1)'
-                borderColor = 'var(--accent-primary)'
+                bg = 'var(--accent-primary-soft)'
+                borderColor = 'var(--accent-primary-border)'
                 color = 'var(--accent-primary)'
+            } else if (nodeType.includes('service') || nodeType.includes('logic')) {
+                bg = 'var(--accent-blue-soft)'
+                borderColor = 'var(--accent-blue)'
+                color = 'var(--accent-blue)'
             } else if (nodeType.includes('db') || nodeType.includes('model') || nodeType.includes('entity')) {
-                bg = 'rgba(16, 185, 129, 0.1)'
+                bg = 'var(--accent-green-soft)'
                 borderColor = 'var(--accent-green)'
                 color = 'var(--accent-green)'
             } else if (nodeType.includes('util') || nodeType.includes('helper')) {
@@ -90,10 +92,10 @@ const InteractiveGraph = ({ data, type = 'architecture' }: InteractiveGraphProps
                 data: {
                     label: (
                         <div style={{ padding: '8px 12px', minWidth: '120px' }}>
-                            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.7, fontWeight: 700, marginBottom: '4px' }}>
+                            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.7, fontWeight: 700, marginBottom: '4px', color: 'var(--text-secondary)' }}>
                                 {n.type || (type === 'datamodel' ? 'Entity' : 'Component')}
                             </div>
-                            <div style={{ fontWeight: 600 }}>{n.name || n.id}</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{n.name || n.id}</div>
                         </div>
                     )
                 },
@@ -102,8 +104,8 @@ const InteractiveGraph = ({ data, type = 'architecture' }: InteractiveGraphProps
                     background: bg,
                     color: color,
                     border: `1px solid ${borderColor}`,
-                    borderRadius: '10px',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                    borderRadius: 'var(--radius-md)',
+                    boxShadow: 'var(--shadow-sm)',
                     width: 'auto',
                     padding: 0
                 }
@@ -115,16 +117,30 @@ const InteractiveGraph = ({ data, type = 'architecture' }: InteractiveGraphProps
             source: l.source.id || l.source,
             target: l.target.id || l.target,
             animated: true,
-            style: { stroke: 'var(--accent-primary)', strokeWidth: 2, opacity: 0.4 },
+            style: { stroke: 'var(--border-default)', strokeWidth: 1.5 },
             markerEnd: {
                 type: MarkerType.ArrowClosed,
-                color: 'var(--accent-primary)',
+                color: 'var(--border-default)',
             },
         }))
 
         setNodes(rfNodes)
         setEdges(rfEdges)
     }, [data, type, setNodes, setEdges])
+
+    useEffect(() => {
+        if (nodes.length === 0 || !rfInstance) return
+
+        const t1 = setTimeout(() => rfInstance.fitView({ padding: 0.2, duration: 200 }), 50)
+        const t2 = setTimeout(() => rfInstance.fitView({ padding: 0.2, duration: 200 }), 200)
+        const t3 = setTimeout(() => rfInstance.fitView({ padding: 0.2, duration: 200 }), 500)
+
+        return () => {
+            clearTimeout(t1)
+            clearTimeout(t2)
+            clearTimeout(t3)
+        }
+    }, [nodes.length, rfInstance])
 
     return (
         <div style={{ width: '100%', height: '100%', minHeight: '500px' }} className="interactive-graph">
@@ -134,7 +150,11 @@ const InteractiveGraph = ({ data, type = 'architecture' }: InteractiveGraphProps
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
+                onInit={setRfInstance}
                 fitView
+                fitViewOptions={{ padding: 0.2, minZoom: 0.2, maxZoom: 1.2 }}
+                minZoom={0.1}
+                maxZoom={1.5}
             >
                 <Background color="var(--border-subtle)" gap={20} size={1} />
                 <Controls showInteractive={false} />
@@ -142,5 +162,11 @@ const InteractiveGraph = ({ data, type = 'architecture' }: InteractiveGraphProps
         </div>
     )
 }
+
+const InteractiveGraph = (props: InteractiveGraphProps) => (
+    <ReactFlowProvider>
+        <InteractiveGraphContent {...props} />
+    </ReactFlowProvider>
+)
 
 export default InteractiveGraph

@@ -3,6 +3,18 @@
    8px grid · thin borders · no heavy shadows
    ═══════════════════════════════════════════════════════ */
 
+/* Override theme variables globally within the documentation workspace */
+.doc-workspace-container {
+    --bg-canvas: var(--doc-bg);
+    --bg-default: var(--doc-surface);
+    --bg-subtle: var(--doc-surface-elevated);
+    --bg-elevated: var(--doc-surface-card);
+    --border-default: var(--doc-border);
+    --text-primary: var(--doc-text-primary);
+    --text-secondary: var(--doc-text-secondary);
+    --text-muted: var(--doc-text-muted);
+}
+
 /* ═══ WORKSPACE SPLIT LAYOUT ═══ */
 .doc-workspace {
     display: flex;
@@ -443,58 +455,64 @@
 
 /* Markdown renderer */
 .doc-md-reader {
-    font-size: 14px;
-    line-height: 1.7;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.75;
     color: var(--text-primary);
 }
 
 .doc-md-reader h1 {
-    font-size: 24px;
+    font-size: 32px;
     font-weight: 700;
-    margin: 24px 0 8px;
+    margin: 32px 0 16px;
     border-bottom: 1px solid var(--border-default);
     padding-bottom: 8px;
     color: var(--text-primary);
 }
 
 .doc-md-reader h2 {
-    font-size: 20px;
+    font-size: 24px;
     font-weight: 700;
-    margin: 20px 0 8px;
+    margin: 28px 0 12px;
     color: var(--text-primary);
 }
 
 .doc-md-reader h3 {
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 600;
-    margin: 16px 0 6px;
+    margin: 24px 0 10px;
     color: var(--text-primary);
 }
 
 .doc-md-reader h4 {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
-    margin: 12px 0 4px;
+    margin: 18px 0 8px;
     color: var(--text-primary);
 }
 
 .doc-md-reader p {
-    margin: 0 0 12px;
+    font-size: 16px;
+    margin: 0 0 16px;
+    line-height: 1.75;
 }
 
 .doc-md-reader ul,
 .doc-md-reader ol {
-    margin: 0 0 12px;
+    margin: 0 0 16px;
     padding-left: 24px;
+    font-size: 16px;
+    line-height: 1.75;
 }
 
 .doc-md-reader li {
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .doc-md-reader a {
     color: var(--text-link);
     text-decoration: none;
+    font-weight: 500;
 }
 
 .doc-md-reader a:hover {
@@ -503,10 +521,10 @@
 
 .doc-md-reader code {
     font-family: var(--font-mono);
-    font-size: 13px;
+    font-size: 14px;
     background: var(--bg-subtle);
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 2px 6px;
+    border-radius: 4px;
     border: 1px solid var(--border-subtle);
 }
 
@@ -547,21 +565,29 @@
 .doc-md-reader table {
     width: 100%;
     border-collapse: collapse;
-    margin: 8px 0 16px;
-    font-size: 13px;
+    margin: 16px 0 24px;
+    font-size: 14px;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
 }
 
 .doc-md-reader th {
     text-align: left;
     font-weight: 600;
-    padding: 6px 12px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 10px 14px;
     background: var(--bg-subtle);
-    border: 1px solid var(--border-default);
+    border-bottom: 1.5px solid var(--border-default);
+    color: var(--text-secondary);
 }
 
 .doc-md-reader td {
-    padding: 6px 12px;
-    border: 1px solid var(--border-default);
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-default);
+    color: var(--text-primary);
+    vertical-align: top;
 }
 
 .doc-md-reader hr {
@@ -1629,4 +1655,127 @@
 [data-theme="light"] .cr-panel-header-sticky {
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(8px);
+}
+
+/* Card system standard styling */
+.doc-card {
+    background: var(--doc-surface-card);
+    border: 1px solid var(--doc-border);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.doc-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--doc-border);
+    background: var(--doc-surface);
+}
+
+.doc-card-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--doc-text-primary);
+    font-family: var(--font-sans);
+}
+
+.doc-card-body {
+    padding: 20px;
+}
+
+/* Table improvements styling */
+.doc-table-container {
+    border: 1px solid var(--doc-border);
+    border-radius: 8px;
+    background: var(--doc-surface-card);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+}
+
+.doc-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 14px;
+    font-family: var(--font-sans);
+}
+
+.doc-table th {
+    background: var(--doc-surface-elevated);
+    color: var(--doc-text-secondary);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 18px;
+    border-bottom: 1.5px solid var(--doc-border);
+}
+
+.doc-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--doc-border);
+    color: var(--doc-text-primary);
+    vertical-align: top;
+}
+
+.doc-table tr:last-child td {
+    border-bottom: none;
+}
+
+.doc-table tr {
+    transition: background-color 0.15s ease;
+}
+
+.doc-table tr:hover {
+    background-color: var(--bg-hover) !important;
+}
+
+/* details and summary styling */
+.doc-md-reader details {
+    margin: 16px 0;
+    padding: 12px 16px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+}
+
+.doc-md-reader summary {
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    outline: none;
+    user-select: none;
+}
+
+.doc-md-reader summary:hover {
+    color: var(--text-primary);
+}
+
+.doc-md-reader details[open] {
+    background: var(--bg-default);
+}
+
+.doc-md-reader details[open] summary {
+    border-bottom: 1px solid var(--border-default);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+
+/* Page overrides inside the doc workspace */
+.doc-workspace-container .cr-page {
+    padding: 24px 32px !important;
+    max-width: 1200px;
+    background-color: var(--doc-bg);
+}
+
+.doc-workspace-container .cr-page--flush {
+    padding: 0 !important;
+    max-width: none;
 }

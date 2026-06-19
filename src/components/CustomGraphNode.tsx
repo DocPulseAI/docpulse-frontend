@@ -76,7 +76,7 @@ const makeHandleStyle = (color: string): CSSProperties => ({
   width: 8,
   height: 8,
   background: color,
-  border: `2px solid rgba(255,255,255,0.15)`,
+  border: `2px solid var(--bg-canvas)`,
   borderRadius: '50%',
   transition: 'transform 0.15s ease, box-shadow 0.15s ease',
 });
@@ -112,8 +112,8 @@ const CustomGraphNode = memo(({ data, selected }: NodeProps<CustomNodeData>) => 
           height: 28,
           borderRadius: 4,
           borderLeft: `3px solid ${theme.color}`,
-          background: theme.tint,
-          border: `1px solid ${theme.border}`,
+          background: 'var(--bg-elevated)',
+          border: `1px solid var(--border-default)`,
           display: 'flex',
           alignItems: 'center',
           paddingLeft: 8,
@@ -123,7 +123,7 @@ const CustomGraphNode = memo(({ data, selected }: NodeProps<CustomNodeData>) => 
           <span style={{
             fontSize: 9,
             fontWeight: 700,
-            color: '#E2E8F0',
+            color: 'var(--text-primary)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -140,17 +140,17 @@ const CustomGraphNode = memo(({ data, selected }: NodeProps<CustomNodeData>) => 
   const containerStyle: CSSProperties = {
     position: 'relative',
     width: 200,
-    background: theme.tint,
-    border: `1px solid ${selected ? theme.color : theme.border}`,
+    background: 'var(--bg-elevated)',
+    border: `1px solid ${selected ? theme.color : 'var(--border-default)'}`,
     borderLeft: `4px solid ${theme.color}`,
     borderRadius: 8,
     padding: '10px 12px 10px 14px',
-    fontFamily: "'IBM Plex Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace",
+    fontFamily: "var(--font-sans)",
     cursor: 'grab',
     boxSizing: 'border-box',
     boxShadow: selected
       ? `0 0 0 1px ${theme.color}55, 0 4px 24px ${theme.color}22`
-      : '0 2px 8px rgba(0,0,0,0.35)',
+      : 'var(--shadow-sm)',
     transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
     backdropFilter: 'blur(4px)',
     opacity: depthOpacity,
@@ -179,7 +179,7 @@ const CustomGraphNode = memo(({ data, selected }: NodeProps<CustomNodeData>) => 
     flex: 1,
     fontSize: 11.5,
     fontWeight: 700,
-    color: '#F1F5F9',
+    color: 'var(--text-primary)',
     letterSpacing: '0.01em',
     lineHeight: 1.3,
     overflow: 'hidden',
@@ -206,8 +206,9 @@ const CustomGraphNode = memo(({ data, selected }: NodeProps<CustomNodeData>) => 
   };
 
   const descStyle: CSSProperties = {
+    fontFamily: 'var(--font-mono)',
     fontSize: 10,
-    color: '#94A3B8',
+    color: 'var(--text-secondary)',
     marginTop: 5,
     lineHeight: 1.4,
     overflow: 'hidden',

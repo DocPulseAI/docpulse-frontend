@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAppSelector } from '../store/hooks'
 import DashboardLayout from '../components/DashboardLayout'
-import ArchitectureGraph from '../components/ArchitectureGraph'
+import ArchitectureGraphViewer from '../components/ArchitectureGraphViewer'
 import ExecutionFlow from '../components/ExecutionFlow'
 import MarkdownViewer from '../components/MarkdownViewer'
 import SearchBar from '../components/SearchBar'
@@ -79,9 +79,9 @@ const IntelligencePage: React.FC<IntelligencePageProps> = ({ type }) => {
             case 'overview':
                 return <MarkdownViewer content={typeof content === 'string' ? content : JSON.stringify(content, null, 2)} />
             case 'architecture':
-                return <ArchitectureGraph projectId={projectId} commitHash={commitHash} />
+                return <ArchitectureGraphViewer projectId={projectId} commitHash={commitHash} type="architecture" />
             case 'dependencies':
-                return <div className="h-full"><ArchitectureGraph projectId={projectId} commitHash={commitHash} type="dependencies" /></div>
+                return <div className="h-full"><ArchitectureGraphViewer projectId={projectId} commitHash={commitHash} type="dependencies" /></div>
             case 'execution-flow':
                 return <ExecutionFlow projectId={projectId} commitHash={commitHash} />
             case 'api':

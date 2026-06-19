@@ -28,13 +28,15 @@ function fileLabel(name: string) {
         .replace(/\b\w/g, c => c.toUpperCase())
 }
 
-import InteractiveGraph from '../../components/InteractiveGraph'
+import DependencyGraphViewer from '../../components/DependencyGraphViewer'
 
 function FileRenderer({ file }: { file: ArchitectureFile }) {
+    const { id, commit } = useParams<{ id: string; commit: string }>()
+
     if (file.name === 'Interactive Graph') {
         return (
             <div style={{ width: '100%', height: 'calc(100vh - 64px)' }} className="cr-page cr-page--flush">
-                <InteractiveGraph data={file.content as any} type="dependencies" />
+                <DependencyGraphViewer projectId={id!} commitHash={commit!} />
             </div>
         )
     }

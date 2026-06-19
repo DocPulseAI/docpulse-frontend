@@ -22,7 +22,11 @@ function fileLabel(name: string) {
         .replace(/\b\w/g, c => c.toUpperCase())
 }
 
+import DocCard from '../../components/DocCard'
+
 function FileRenderer({ file }: { file: ArchitectureFile }) {
+    const { id, commit } = useParams<{ id: string; commit: string }>()
+
     if (file.name === 'Interactive Graph') {
         const stats = file.content as any
         const severityData = stats ? [
@@ -34,39 +38,33 @@ function FileRenderer({ file }: { file: ArchitectureFile }) {
         return (
             <div className="cr-page" style={{ padding: '0 32px' }}>
                 <div className="cr-grid-2" style={{ paddingTop: '24px' }}>
-                    <section className="cr-card">
-                        <h3 className="cr-card-title">Severity Distribution via Recharts</h3>
-                        <div className="cr-card-body" style={{ height: '300px' }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie data={severityData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                                        {severityData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </section>
+                    <DocCard title="Severity Distribution via Recharts" bodyStyle={{ height: '300px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie data={severityData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                                    {severityData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </DocCard>
 
-                    <section className="cr-card">
-                        <h3 className="cr-card-title">Affected Modules & Files</h3>
-                        <div className="cr-card-body">
-                            <div style={{ marginBottom: '16px' }}>
-                                <h4 style={{ fontSize: '14px', marginBottom: '8px', color: 'var(--text-secondary)' }}>Modules</h4>
-                                {stats?.modules?.length > 0 ? stats.modules.map((m: string) => (
-                                    <div key={m} style={{ fontSize: '13px', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>{m}</div>
-                                )) : <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No affected modules detected.</div>}
-                            </div>
-                            <div>
-                                <h4 style={{ fontSize: '14px', marginBottom: '8px', color: 'var(--text-secondary)' }}>Files</h4>
-                                {stats?.files?.length > 0 ? stats.files.map((f: string) => (
-                                    <div key={f} style={{ fontSize: '13px', padding: '4px 0', color: 'var(--text-muted)' }}>{f}</div>
-                                )) : <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No individual files modified.</div>}
-                            </div>
+                    <DocCard title="Affected Modules & Files">
+                        <div style={{ marginBottom: '16px' }}>
+                            <h4 style={{ fontSize: '14px', marginBottom: '8px', color: 'var(--text-secondary)' }}>Modules</h4>
+                            {stats?.modules?.length > 0 ? stats.modules.map((m: string) => (
+                                <div key={m} style={{ fontSize: '13px', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>{m}</div>
+                            )) : <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No affected modules detected.</div>}
                         </div>
-                    </section>
+                        <div>
+                            <h4 style={{ fontSize: '14px', marginBottom: '8px', color: 'var(--text-secondary)' }}>Files</h4>
+                            {stats?.files?.length > 0 ? stats.files.map((f: string) => (
+                                <div key={f} style={{ fontSize: '13px', padding: '4px 0', color: 'var(--text-muted)' }}>{f}</div>
+                            )) : <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No individual files modified.</div>}
+                        </div>
+                    </DocCard>
                 </div>
             </div>
         )
