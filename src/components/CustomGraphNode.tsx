@@ -9,6 +9,10 @@ import {
   LucideIcon,
 } from 'lucide-react';
 
+/** Reads a CSS custom property value from :root at runtime. */
+const cssVar = (name: string): string =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
 export type NodeType = 'API' | 'Controller' | 'Service' | 'Entity' | 'Module';
 
 export interface CustomNodeData {
@@ -21,53 +25,47 @@ export interface CustomNodeData {
 }
 
 interface NodeTheme {
-  color: string;
-  tint: string;
-  border: string;
+  colorVar: string; // CSS variable name
+  tintAlpha: number;
+  borderAlpha: number;
   tag: string;
-  tagText: string;
   icon: LucideIcon;
 }
 
 const NODE_THEMES: Record<NodeType, NodeTheme> = {
   API: {
-    color: '#3B82F6',
-    tint: 'rgba(59, 130, 246, 0.10)',
-    border: 'rgba(59, 130, 246, 0.35)',
+    colorVar: '--graph-node-service',
+    tintAlpha: 0.10,
+    borderAlpha: 0.35,
     tag: 'API',
-    tagText: '#93C5FD',
     icon: Server,
   },
   Controller: {
-    color: '#A855F7',
-    tint: 'rgba(168, 85, 247, 0.10)',
-    border: 'rgba(168, 85, 247, 0.35)',
+    colorVar: '--graph-node-controller',
+    tintAlpha: 0.10,
+    borderAlpha: 0.35,
     tag: 'Controller',
-    tagText: '#D8B4FE',
     icon: GitBranch,
   },
   Service: {
-    color: '#22C55E',
-    tint: 'rgba(34, 197, 94, 0.10)',
-    border: 'rgba(34, 197, 94, 0.30)',
+    colorVar: '--graph-node-model',
+    tintAlpha: 0.10,
+    borderAlpha: 0.30,
     tag: 'Service',
-    tagText: '#86EFAC',
     icon: Layers,
   },
   Entity: {
-    color: '#F97316',
-    tint: 'rgba(249, 115, 22, 0.10)',
-    border: 'rgba(249, 115, 22, 0.30)',
+    colorVar: '--graph-node-queue',
+    tintAlpha: 0.10,
+    borderAlpha: 0.30,
     tag: 'Entity',
-    tagText: '#FDBA74',
     icon: Database,
   },
   Module: {
-    color: '#6B7280',
-    tint: 'rgba(107, 114, 128, 0.12)',
-    border: 'rgba(107, 114, 128, 0.30)',
+    colorVar: '--graph-node-unknown',
+    tintAlpha: 0.12,
+    borderAlpha: 0.30,
     tag: 'Module',
-    tagText: '#9CA3AF',
     icon: Box,
   },
 };
@@ -84,20 +82,16 @@ const makeHandleStyle = (color: string): CSSProperties => ({
 const CustomGraphNode = memo(({ data, selected }: NodeProps<CustomNodeData>) => {
   const type: NodeType = data.type ?? 'Module';
   const baseTheme = NODE_THEMES[type] ?? NODE_THEMES.Module;
-  
+
   const isCyclic = data.isCyclic ?? false;
   const depth = data.depthLevel ?? 0;
   const depthOpacity = Math.max(0.45, 1 - depth * 0.08);
 
-  const cyclicOverrides = isCyclic ? {
-    color: '#EF4444',
-    tint: 'rgba(239, 68, 68, 0.12)',
-    border: 'rgba(239, 68, 68, 0.50)',
-    tagText: '#FCA5A5',
-  } : {};
+  // Resolve color from CSS variable at render time (respects theme)
+  const colorVarName = isCyclic ? '--graph-node-error' : baseTheme.colorVar;
+  const color = `var(${colorVarName})`;
+  const Icon = baseTheme.icon;
 
-  const theme = { ...baseTheme, ...cyclicOverrides };
-  const Icon = theme.icon;
 
   const { zoom } = useViewport();
   const useMini = zoom < 0.45;
@@ -111,7 +105,7 @@ const CustomGraphNode = memo(({ data, selected }: NodeProps<CustomNodeData>) => 
           width: 90,
           height: 28,
           borderRadius: 4,
-          borderLeft: `3px solid ${theme.color}`,
+          borderLeft: `3px solid ${color}`,
           background: 'var(--bg-elevated)',
           border: `1px solid var(--border-default)`,
           display: 'flex',
@@ -141,15 +135,15 @@ const CustomGraphNode = memo(({ data, selected }: NodeProps<CustomNodeData>) => 
     position: 'relative',
     width: 200,
     background: 'var(--bg-elevated)',
-    border: `1px solid ${selected ? theme.color : 'var(--border-default)'}`,
-    borderLeft: `4px solid ${theme.color}`,
+    border: `1px solid ${selected ? color : 'var(--border-default)'}`,
+    borderLeft: `4px solid ${color}`,
     borderRadius: 8,
     padding: '10px 12px 10px 14px',
     fontFamily: "var(--font-sans)",
     cursor: 'grab',
     boxSizing: 'border-box',
     boxShadow: selected
-      ? `0 0 0 1px ${theme.color}55, 0 4px 24px ${theme.color}22`
+      ? `0 0 0 1px color-mix(in srgb, ${color} 33%, transparent), 0 4px 24px color-mix(in srgb, ${color} 13%, transparent)`
       : 'var(--shadow-sm)',
     transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
     backdropFilter: 'blur(4px)',
@@ -168,8 +162,8 @@ const CustomGraphNode = memo(({ data, selected }: NodeProps<CustomNodeData>) => 
     width: 26,
     height: 26,
     borderRadius: 5,
-    background: `${theme.color}22`,
-    border: `1px solid ${theme.color}44`,
+    background: `color-mix(in srgb, ${color} 13%, transparent)`,
+    border: `1px solid color-mix(in srgb, ${color} 27%, transparent)`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -197,9 +191,9 @@ const CustomGraphNode = memo(({ data, selected }: NodeProps<CustomNodeData>) => 
     fontWeight: 600,
     letterSpacing: '0.08em',
     textTransform: 'uppercase',
-    color: theme.tagText,
-    background: `${theme.color}18`,
-    border: `1px solid ${theme.color}33`,
+    color: `var(--text-muted)`,
+    background: `color-mix(in srgb, ${color} 9%, transparent)`,
+    border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
     borderRadius: 4,
     padding: '2px 6px',
     marginTop: 2,
@@ -218,19 +212,19 @@ const CustomGraphNode = memo(({ data, selected }: NodeProps<CustomNodeData>) => 
 
   const dividerStyle: CSSProperties = {
     height: 1,
-    background: `linear-gradient(to right, ${theme.color}44, transparent)`,
+    background: `linear-gradient(to right, color-mix(in srgb, ${color} 27%, transparent), transparent)`,
     margin: '7px 0',
   };
 
   return (
     <>
-      <Handle type="target" position={Position.Top} style={{ ...makeHandleStyle(theme.color), top: -4 }} />
-      <Handle type="target" position={Position.Left} style={{ ...makeHandleStyle(theme.color), left: -4 }} />
+      <Handle type="target" position={Position.Top} style={{ ...makeHandleStyle(color), top: -4 }} />
+      <Handle type="target" position={Position.Left} style={{ ...makeHandleStyle(color), left: -4 }} />
 
       <div style={containerStyle} className="custom-graph-node">
         <div style={headerStyle}>
           <div style={iconBadgeStyle}>
-            <Icon size={13} color={theme.color} strokeWidth={2.2} />
+            <Icon size={13} color={cssVar(colorVarName)} strokeWidth={2.2} />
           </div>
           <span style={labelStyle}>{data.label}</span>
         </div>
@@ -238,7 +232,7 @@ const CustomGraphNode = memo(({ data, selected }: NodeProps<CustomNodeData>) => 
         <div style={dividerStyle} />
 
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-          <span style={tagStyle}>{theme.tag}</span>
+          <span style={tagStyle}>{baseTheme.tag}</span>
         </div>
 
         {data.description && (
@@ -246,8 +240,8 @@ const CustomGraphNode = memo(({ data, selected }: NodeProps<CustomNodeData>) => 
         )}
       </div>
 
-      <Handle type="source" position={Position.Bottom} style={{ ...makeHandleStyle(theme.color), bottom: -4 }} />
-      <Handle type="source" position={Position.Right} style={{ ...makeHandleStyle(theme.color), right: -4 }} />
+      <Handle type="source" position={Position.Bottom} style={{ ...makeHandleStyle(color), bottom: -4 }} />
+      <Handle type="source" position={Position.Right} style={{ ...makeHandleStyle(color), right: -4 }} />
     </>
   );
 });

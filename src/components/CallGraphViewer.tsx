@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import ReactFlow, {
     Background,
     Controls,
+    MiniMap,
     useEdgesState,
     useNodesState,
     Node,
@@ -13,7 +14,15 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import dagre from 'dagre'
 import { intelligenceApi } from '../services/api'
-import { Workflow, Search, X, Maximize2, Minimize2 } from 'lucide-react'
+import { Workflow, Search, X, Maximize2, Minimize2, ZoomIn, ZoomOut } from 'lucide-react'
+
+export const nodeTypeColor: Record<string, string> = {
+    API: 'var(--graph-node-service)',
+    Controller: 'var(--graph-node-controller)',
+    Service: 'var(--graph-node-model)',
+    Entity: 'var(--graph-node-queue)',
+    Module: 'var(--graph-node-unknown)',
+}
 
 interface CallGraphViewerProps {
     projectId: string
@@ -272,7 +281,27 @@ const CallGraphViewer: React.FC<CallGraphViewerProps> = ({ projectId, commitHash
                 attributionPosition="bottom-right"
             >
                 <Background color="var(--border-default)" gap={20} size={1} />
-                <Controls showInteractive={false} />
+                <MiniMap
+                    style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-default)', borderRadius: '8px' }}
+                    nodeColor={(node) => {
+                        const rawType = String(node.data?.type || 'Module')
+                        return nodeTypeColor[rawType] || 'var(--graph-node-unknown)'
+                    }}
+                    maskColor="rgba(0, 0, 0, 0.15)"
+                />
+                
+                {/* Floating custom zoom controls */}
+                <Panel position="bottom-left" style={{ display: 'flex', gap: 6, background: 'var(--bg-default)', padding: 4, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', marginBottom: 12, marginLeft: 12 }}>
+                    <button onClick={() => rfInstance?.zoomIn()} className="cr-doc-btn" style={{ padding: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Zoom In">
+                        <ZoomIn size={14} />
+                    </button>
+                    <button onClick={() => rfInstance?.zoomOut()} className="cr-doc-btn" style={{ padding: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Zoom Out">
+                        <ZoomOut size={14} />
+                    </button>
+                    <button onClick={() => rfInstance?.fitView({ duration: 400 })} className="cr-doc-btn" style={{ padding: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Fit View">
+                        <Maximize2 size={14} />
+                    </button>
+                </Panel>
                 
                 <Panel position="top-right" style={{ background: 'var(--bg-default)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: 12, minWidth: 280 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

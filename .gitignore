@@ -7,6 +7,16 @@ test-results/
 Thumbs.db
 coverage/
 
+# Generated artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+outputs/
+
 # Environment files
 .env
 .env.*

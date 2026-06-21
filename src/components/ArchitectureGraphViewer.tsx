@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import ReactFlow, {
     Background,
     Controls,
+    MiniMap,
     useEdgesState,
     useNodesState,
     Node,
@@ -25,11 +26,11 @@ interface ArchitectureGraphViewerProps {
 import { nodeTypes, applyEdgeDefaults, EDGE_DEFAULTS } from './edgeConfig'
 
 export const nodeTypeColor: Record<string, string> = {
-    API: '#3B82F6',
-    Controller: '#A855F7',
-    Service: '#22C55E',
-    Entity: '#F97316',
-    Module: '#6B7280',
+    API: 'var(--graph-node-service)',
+    Controller: 'var(--graph-node-controller)',
+    Service: 'var(--graph-node-model)',
+    Entity: 'var(--graph-node-queue)',
+    Module: 'var(--graph-node-unknown)',
 }
 
 const nodeWidth = 200
@@ -282,6 +283,14 @@ const ArchitectureGraphViewer: React.FC<ArchitectureGraphViewerProps> = ({ proje
                 attributionPosition="bottom-right"
             >
                 <Background color="var(--border-default)" gap={20} size={1} />
+                <MiniMap
+                    style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-default)', borderRadius: '8px' }}
+                    nodeColor={(node) => {
+                        const rawType = String(node.data?.type || 'Module')
+                        return nodeTypeColor[rawType] || 'var(--graph-node-unknown)'
+                    }}
+                    maskColor="rgba(0, 0, 0, 0.15)"
+                />
                 
                 {/* Floating custom zoom controls */}
                 <Panel position="bottom-left" style={{ display: 'flex', gap: 6, background: 'var(--bg-default)', padding: 4, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', marginBottom: 12, marginLeft: 12 }}>
@@ -333,10 +342,10 @@ const ArchitectureGraphViewer: React.FC<ArchitectureGraphViewerProps> = ({ proje
                 </Panel>
                 
                 <Panel position="bottom-center" style={{ background: 'var(--bg-default)', padding: '8px 12px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', display: 'flex', gap: 12, marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeTypeColor.API }}/> API</span>
-                    <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeTypeColor.Controller }}/> Controller</span>
-                    <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeTypeColor.Service }}/> Service</span>
-                    <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeTypeColor.Entity }}/> Entity</span>
+                    <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-primary)' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeTypeColor.API }}/> API</span>
+                    <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-primary)' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeTypeColor.Controller }}/> Controller</span>
+                    <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-primary)' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeTypeColor.Service }}/> Service</span>
+                    <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-primary)' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeTypeColor.Entity }}/> Entity</span>
                 </Panel>
             </ReactFlow>
             </ReactFlowProvider>

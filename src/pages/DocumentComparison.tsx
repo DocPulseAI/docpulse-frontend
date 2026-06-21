@@ -290,10 +290,13 @@ const DocumentComparison = () => {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <span className="cr-severity cr-severity--low">+{stats.added} added</span>
-            <span className="cr-severity cr-severity--critical">-{stats.removed} removed</span>
+            {stats.added > 0 && <span className="cr-severity cr-severity--low">+{stats.added} added</span>}
+            {stats.removed > 0 && <span className="cr-severity cr-severity--critical">-{stats.removed} removed</span>}
             {stats.modified > 0 && <span className="cr-severity cr-severity--medium">~{stats.modified} modified</span>}
-            <span className="cr-severity cr-severity--info">{stats.unchanged} unchanged</span>
+            {stats.unchanged > 0 && <span className="cr-severity cr-severity--info">{stats.unchanged} unchanged</span>}
+            {stats.added === 0 && stats.removed === 0 && stats.modified === 0 && (
+              <span className="cr-severity cr-severity--info">No changes detected</span>
+            )}
           </div>
         </div>
 

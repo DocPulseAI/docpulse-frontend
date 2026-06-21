@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchProjects, createProject, clearError } from '../store/slices/projectsSlice'
 import DashboardLayout from '../components/DashboardLayout'
 import { SkeletonProjectsPage } from '../components/Skeleton'
+import { EmptyState } from '../design-system'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Book, Github, Clock, Plus, Search, EyeOff,
@@ -170,34 +171,18 @@ const Projects = () => {
 
           {/* Content */}
           {filtered.length === 0 ? (
-            <div className="cr-settings-list">
-              <div className="cr-empty">
-                <div className="cr-empty-icon">
-                  {searchQuery ? <Search size={22} /> : <Book size={22} />}
-                </div>
-                <p className="cr-empty-title">{searchQuery ? 'No projects found' : 'No projects yet'}</p>
-                <p className="cr-empty-body">
-                  {searchQuery
+            <div className="cr-settings-list" style={{ padding: '24px 0' }}>
+              <EmptyState
+                title={searchQuery ? 'No projects found' : 'No projects yet'}
+                description={
+                  searchQuery
                     ? `No projects matching "${searchQuery}". Try adjusting your search.`
-                    : 'Create your first project to start generating AI-powered documentation.'}
-                </p>
-                <div className="cr-empty-cta">
-                  {!searchQuery && (
-                    <button
-                      className="cr-doc-btn cr-doc-btn--primary"
-                      style={{ padding: '7px 16px', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
-                      onClick={() => setShowCreateModal(true)}
-                    >
-                      <Plus size={14} /> Create First Project
-                    </button>
-                  )}
-                  {searchQuery && (
-                    <button className="cr-doc-btn" style={{ padding: '6px 14px' }} onClick={() => setSearchQuery('')}>
-                      Clear search
-                    </button>
-                  )}
-                </div>
-              </div>
+                    : 'Create your first project to start generating AI-powered documentation.'
+                }
+                icon={searchQuery ? <Search className="w-12 h-12 text-muted" /> : <Book className="w-12 h-12 text-muted" />}
+                actionLabel={searchQuery ? 'Clear search' : 'Create First Project'}
+                onAction={searchQuery ? () => setSearchQuery('') : () => setShowCreateModal(true)}
+              />
             </div>
           ) : (
             <div className="cr-settings-list">

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import ReactFlow, {
     Background,
     Controls,
+    MiniMap,
     useEdgesState,
     useNodesState,
     Node,
@@ -16,11 +17,11 @@ import { intelligenceApi } from '../services/api'
 import { GitFork, Search, X, ChevronUp, ChevronDown, Maximize2, Minimize2, ZoomIn, ZoomOut } from 'lucide-react'
 
 export const nodeTypeColor: Record<string, string> = {
-    API: '#3B82F6',
-    Controller: '#A855F7',
-    Service: '#22C55E',
-    Entity: '#F97316',
-    Module: '#6B7280',
+    API: 'var(--graph-node-service)',
+    Controller: 'var(--graph-node-controller)',
+    Service: 'var(--graph-node-model)',
+    Entity: 'var(--graph-node-queue)',
+    Module: 'var(--graph-node-unknown)',
 }
 
 interface DependencyGraphViewerProps {
@@ -320,6 +321,14 @@ const DependencyGraphViewer: React.FC<DependencyGraphViewerProps> = ({ projectId
                 attributionPosition="bottom-right"
             >
                 <Background color="var(--border-default)" gap={20} size={1} />
+                <MiniMap
+                    style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-default)', borderRadius: '8px' }}
+                    nodeColor={(node) => {
+                        const rawType = String(node.data?.type || 'Module')
+                        return nodeTypeColor[rawType] || 'var(--graph-node-unknown)'
+                    }}
+                    maskColor="rgba(0, 0, 0, 0.15)"
+                />
                 
                 {/* Floating custom zoom controls */}
                 <Panel position="bottom-left" style={{ display: 'flex', gap: 6, background: 'var(--bg-default)', padding: 4, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)', marginBottom: 12, marginLeft: 12 }}>
