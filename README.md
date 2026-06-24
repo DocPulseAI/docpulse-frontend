@@ -312,7 +312,7 @@ graph TD
 The frontend compiles to static assets (HTML, CSS, JS) served inside a lightweight Nginx container.
 
 - **Nginx Configuration** (`nginx.conf`): Optimized for SPA routing — redirects all sub-paths to `index.html` to prevent 404 errors on refresh.
-- **Deployment targets**: Azure Container Apps, Render, AWS ECS, Vercel, or any static file host.
+- **Deployment targets**: Render, Vercel, or any platform supporting static file hosting or container runners.
 
 ---
 
